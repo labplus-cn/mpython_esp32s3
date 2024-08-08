@@ -42,3 +42,6 @@ pymakr.conf
 **/__pycache__/
 build-venv/
 build-venv-robot/
+
+dependencies.lock
+managed_components/
