@@ -37,19 +37,29 @@ list(APPEND EXTRA_COMPONENT_DIRS main_${IDF_TARGET})
 PSRAM支持
 
 mainfest.py
+官方参才文档：https://docs.micropython.org/en/latest/reference/manifest.html
+MicroPython除了能够从文件系统加载Python代码外，还可以把Python代码“冻结”到固件加载，这样做有几个好处：
+代码已被预编译为字节码，无需在加载时编译Python源代码。
+字节码可以直接从ROM（即闪存）中执行，而无需复制到内存。同样，任何常量对象（字符串、元组等）也从ROM中加载，这可以大大增加应用程序的可用内存。
+在没有文件系统的设备上，这也是加载Python代码的唯一方法。
+
+
+partition_xxx.csv
 
 项目组建：
 拉取esp-idf及micrpython，做为项目子模块，分别checkout到v5.0.4，v1.23.0，执行git submodule updatee --init --recursive，拉取所有子模块。
-新建port文件夹
-从micropython/ports/esp32复制
-boards modules、README.md，README.ulp.md 
-
-CMakeLists.txt
-esp32_common.cmake
+新建port文件夹，把以下文件（文件夹），从micropython/ports/esp32复制到port文件夹
+boards 、README.md，README.ulp.md 
+复制main_xxx文件兲到port下，做为不同芯片的main组件。
+复制CMakeLists.txt 
+复制esp32_common.cmake 是所有板的公共文件。
+复制modules，做为所有板的公用python库。
 
 Noto_Sans_CJK_SC_Light16.bin .gitignore过来，把.gitignore内容复制过来。
 
-
+修改MICROPY_DIR MICROPY_PORT_DIR路径定义，涉及文件：esp32_common.cmake
 项目编译：
+linux系统按乐鑫要求安装一些库，安装gcc cmake
 1、进入esp-idf，执行./install.sh，安装esp-idf的编译环境。
 2、执行. ./export.sh，导出相关环境变量。
+3、cd port，
