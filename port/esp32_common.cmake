@@ -4,8 +4,8 @@ if(NOT MICROPY_DIR)
 endif()
 
 # Set location of the ESP32 port directory.
-if(NOT MICROPY_PORT_DIR)
-    get_filename_component(MICROPY_PORT_DIR ${CMAKE_CURRENT_LIST_DIR}/../micropython/ports/esp32 ABSOLUTE)
+if(NOT MICROPYTHON_PORT_DIR)
+    get_filename_component(MICROPYTHON_PORT_DIR ${CMAKE_CURRENT_LIST_DIR}/../micropython/ports/esp32 ABSOLUTE)
 endif()
 
 # Include core source components.
@@ -24,7 +24,7 @@ if(NOT CMAKE_BUILD_EARLY_EXPANSION)
 endif()
 
 list(APPEND MICROPY_QSTRDEFS_PORT
-    ${MICROPY_PORT_DIR}/qstrdefsport.h
+    ${MICROPYTHON_PORT_DIR}/qstrdefsport.h
 )
 
 list(APPEND MICROPY_SOURCE_SHARED
@@ -88,7 +88,7 @@ list(APPEND MICROPY_SOURCE_PORT
     machine_sdcard.c
     modespnow.c
 )
-list(TRANSFORM MICROPY_SOURCE_PORT PREPEND ${MICROPY_PORT_DIR}/)
+list(TRANSFORM MICROPY_SOURCE_PORT PREPEND ${MICROPYTHON_PORT_DIR}/)
 list(APPEND MICROPY_SOURCE_PORT ${CMAKE_BINARY_DIR}/pins.c)
 
 list(APPEND MICROPY_SOURCE_QSTR
@@ -149,7 +149,7 @@ idf_component_register(
     INCLUDE_DIRS
         ${MICROPY_INC_CORE}
         ${MICROPY_INC_USERMOD}
-        ${MICROPY_PORT_DIR}
+        ${MICROPYTHON_PORT_DIR}
         ${MICROPY_BOARD_DIR}
         ${CMAKE_BINARY_DIR}
     LDFRAGMENTS
@@ -206,8 +206,8 @@ include(${MICROPY_DIR}/py/mkrules.cmake)
 
 # Generate source files for named pins (requires mkrules.cmake for MICROPY_GENHDR_DIR).
 
-set(GEN_PINS_PREFIX "${MICROPY_PORT_DIR}/boards/pins_prefix.c")
-set(GEN_PINS_MKPINS "${MICROPY_PORT_DIR}/boards/make-pins.py")
+set(GEN_PINS_PREFIX "${MICROPYTHON_PORT_DIR}/boards/pins_prefix.c")
+set(GEN_PINS_MKPINS "${MICROPYTHON_PORT_DIR}/boards/make-pins.py")
 set(GEN_PINS_SRC "${CMAKE_BINARY_DIR}/pins.c")
 set(GEN_PINS_HDR "${MICROPY_GENHDR_DIR}/pins.h")
 

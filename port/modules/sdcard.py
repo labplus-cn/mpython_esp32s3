@@ -1,1 +1,0 @@
-../../micropython/drivers/sdcard/sdcard.py

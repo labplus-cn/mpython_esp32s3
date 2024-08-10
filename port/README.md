@@ -138,6 +138,7 @@ for example:
 ```bash
 $ idf.py build
 $ idf.py -D MICROPY_BOARD=ESP32_GENERIC build
+$ idf.py -D MICROPY_BOARD=labplus_classroom_kit_nanjing build
 $ idf.py flash
 ```
 
