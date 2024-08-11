@@ -1,3 +1,5 @@
+# 本文件被main级件引用，相对路径在main组件夹。
+
 # Set location of base MicroPython directory.
 if(NOT MICROPY_DIR)
     get_filename_component(MICROPY_DIR ${CMAKE_CURRENT_LIST_DIR}/../micropython ABSOLUTE)
@@ -6,6 +8,10 @@ endif()
 # Set location of the ESP32 port directory.
 if(NOT MICROPYTHON_PORT_DIR)
     get_filename_component(MICROPYTHON_PORT_DIR ${CMAKE_CURRENT_LIST_DIR}/../micropython/ports/esp32 ABSOLUTE)
+endif()
+
+if(NOT MPY_PORT_DIR)
+    get_filename_component(MPY_PORT_DIR ${CMAKE_CURRENT_LIST_DIR}/.. ABSOLUTE)
 endif()
 
 # Include core source components.
@@ -24,7 +30,7 @@ if(NOT CMAKE_BUILD_EARLY_EXPANSION)
 endif()
 
 list(APPEND MICROPY_QSTRDEFS_PORT
-    ${MICROPYTHON_PORT_DIR}/qstrdefsport.h
+    ${MPY_PORT_DIR}/qstrdefsport.h
 )
 
 list(APPEND MICROPY_SOURCE_SHARED
@@ -34,7 +40,7 @@ list(APPEND MICROPY_SOURCE_SHARED
     ${MICROPY_DIR}/shared/runtime/interrupt_char.c
     ${MICROPY_DIR}/shared/runtime/stdout_helpers.c
     ${MICROPY_DIR}/shared/runtime/sys_stdio_mphal.c
-    ${MICROPY_DIR}/shared/runtime/pyexec.c
+    # ${MICROPY_DIR}/shared/runtime/pyexec.c
 )
 
 list(APPEND MICROPY_SOURCE_LIB
@@ -55,7 +61,7 @@ list(APPEND MICROPY_SOURCE_DRIVERS
 list(APPEND MICROPY_SOURCE_PORT
     panichandler.c
     adc.c
-    main.c
+    # main.c
     ppp_set_auth.c
     uart.c
     usb.c
@@ -77,7 +83,7 @@ list(APPEND MICROPY_SOURCE_PORT
     mpnimbleport.c
     modsocket.c
     modesp.c
-    esp32_nvs.c
+    # esp32_nvs.c
     esp32_partition.c
     esp32_rmt.c
     esp32_ulp.c
@@ -152,6 +158,7 @@ idf_component_register(
         ${MICROPYTHON_PORT_DIR}
         ${MICROPY_BOARD_DIR}
         ${CMAKE_BINARY_DIR}
+        ${MICROPY_SOURCE_BOARD_DIR}
     LDFRAGMENTS
         linker.lf
     REQUIRES
