@@ -28,6 +28,7 @@
 #include "py/mphal.h"
 #include "modmachine.h"
 #include "driver/gpio.h"
+#include "esp_timer.h"
 
 #if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
 
@@ -155,7 +156,9 @@ static void machine_touchpad_timer_cb(void *args)
             touchpad_inactive_timeout[i]--;
             if (touchpad_inactive_timeout[i] == 0) {
                 mp_obj_t handler = MP_STATE_PORT(machine_touchpad_irq_handler)[i];
-                mp_sched_schedule(handler, mp_obj_new_int(0));
+                if(handler){
+                    mp_sched_schedule(handler, mp_obj_new_int(0));
+                }
                 inactive_pad_num++;
             }
         }
@@ -241,6 +244,7 @@ static mp_obj_t machine_touchpad_irq(size_t n_args, const mp_obj_t *pos_args, mp
 static MP_DEFINE_CONST_FUN_OBJ_KW(machine_touchpad_irq_obj, 1, machine_touchpad_irq);
 
 static const mp_rom_map_elem_t mtp_locals_dict_table[] = {
+    // { MP_ROM_QSTR(MP_QSTR___init__), MP_ROM_PTR(&mpt_init_obj)},
     // instance methods
     { MP_ROM_QSTR(MP_QSTR_config), MP_ROM_PTR(&mtp_config_obj) },
     { MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&mtp_read_obj) },
@@ -256,5 +260,7 @@ MP_DEFINE_CONST_OBJ_TYPE(
     make_new, mtp_make_new,
     locals_dict, &mtp_locals_dict
     );
+
+MP_REGISTER_ROOT_POINTER(mp_obj_t *machine_touchpad_irq_handler[10]);
 
 #endif
