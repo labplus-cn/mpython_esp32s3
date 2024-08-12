@@ -72,8 +72,8 @@ list(APPEND MICROPY_SOURCE_PORT
     help.c
     machine_bitstream.c
     machine_timer.c
-    machine_pin.c
-    machine_touchpad.c
+    # machine_pin.c
+    # machine_touchpad.c
     machine_dac.c
     machine_i2c.c
     network_common.c
