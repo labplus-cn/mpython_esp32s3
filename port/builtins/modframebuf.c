@@ -65,8 +65,8 @@ typedef struct _mp_framebuf_p_t {
 #define FRAMEBUF_MHLSB    (3)
 #define FRAMEBUF_MHMSB    (4)
 
-static void _swap(int *x,int *y){
-	int temp=*x;
+static void _swap(mp_int_t *x,mp_int_t *y){
+	mp_int_t temp=*x;
 	*x=*y;
 	*y=temp;
 }
@@ -1138,7 +1138,7 @@ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_poly_obj, 5, 6, framebuf_pol
 
 #endif // MICROPY_PY_ARRAY
 
-static mp_obj_t framebuf_blit(size_t n_args, const mp_obj_t *args_in) {
+static mp_obj_t framebuf_blit1(size_t n_args, const mp_obj_t *args_in) {
     mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args_in[0]);
     mp_obj_t source_in = mp_obj_cast_to_native_base(args_in[1], MP_OBJ_FROM_PTR(&mp_type_framebuf));
     if (source_in == MP_OBJ_NULL) {
@@ -1191,9 +1191,9 @@ static mp_obj_t framebuf_blit(size_t n_args, const mp_obj_t *args_in) {
     }
     return mp_const_none;
 }
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_blit_obj, 4, 6, framebuf_blit);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_blit1_obj, 4, 6, framebuf_blit1);
 
-static mp_obj_t framebuf_scroll(mp_obj_t self_in, mp_obj_t xstep_in, mp_obj_t ystep_in) {
+static mp_obj_t framebuf_scroll1(mp_obj_t self_in, mp_obj_t xstep_in, mp_obj_t ystep_in) {
     mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(self_in);
     mp_int_t xstep = mp_obj_get_int(xstep_in);
     mp_int_t ystep = mp_obj_get_int(ystep_in);
@@ -1235,9 +1235,9 @@ static mp_obj_t framebuf_scroll(mp_obj_t self_in, mp_obj_t xstep_in, mp_obj_t ys
     }
     return mp_const_none;
 }
-static MP_DEFINE_CONST_FUN_OBJ_3(framebuf_scroll_obj, framebuf_scroll);
+static MP_DEFINE_CONST_FUN_OBJ_3(framebuf_scroll1_obj, framebuf_scroll1);
 
-static mp_obj_t framebuf_text(size_t n_args, const mp_obj_t *args_in) {
+static mp_obj_t framebuf_text1(size_t n_args, const mp_obj_t *args_in) {
     // extract arguments
     mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args_in[0]);
     const char *str = mp_obj_str_get_str(args_in[1]);
@@ -1273,7 +1273,7 @@ static mp_obj_t framebuf_text(size_t n_args, const mp_obj_t *args_in) {
     }
     return mp_const_none;
 }
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_text_obj, 4, 5, framebuf_text);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_text1_obj, 4, 5, framebuf_text1);
 
 #if !MICROPY_ENABLE_DYNRUNTIME
 static const mp_rom_map_elem_t framebuf_locals_dict_table[] = {
@@ -1297,10 +1297,13 @@ static const mp_rom_map_elem_t framebuf_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_poly), MP_ROM_PTR(&framebuf_poly_obj) },
     #endif
     { MP_ROM_QSTR(MP_QSTR_blit), MP_ROM_PTR(&framebuf_blit_obj) },
+    { MP_ROM_QSTR(MP_QSTR_blit1), MP_ROM_PTR(&framebuf_blit1_obj) },
     { MP_ROM_QSTR(MP_QSTR_bitmap), MP_ROM_PTR(&framebuf_bitmap_obj) },
     { MP_ROM_QSTR(MP_QSTR_Bitmap), MP_ROM_PTR(&framebuf_bitmap_obj) },
     { MP_ROM_QSTR(MP_QSTR_scroll), MP_ROM_PTR(&framebuf_scroll_obj) },
+    { MP_ROM_QSTR(MP_QSTR_scroll1), MP_ROM_PTR(&framebuf_scroll1_obj) },
     { MP_ROM_QSTR(MP_QSTR_text), MP_ROM_PTR(&framebuf_text_obj) },
+    { MP_ROM_QSTR(MP_QSTR_text1), MP_ROM_PTR(&framebuf_text1_obj) },
 };
 static MP_DEFINE_CONST_DICT(framebuf_locals_dict, framebuf_locals_dict_table);
 

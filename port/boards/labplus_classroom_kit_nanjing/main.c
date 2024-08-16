@@ -40,6 +40,9 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_psram.h"
+#include "startup/oled.h"
+#include "esp_timer.h"		// add by zkh
+#include "driver/timer.h"
 
 #include "py/stackctrl.h"
 #include "py/nlr.h"
@@ -68,6 +71,9 @@
 #include "modespnow.h"
 #endif
 
+static uint16_t hw_init_flags = 0;
+const char msg_iic_failed[] = "IIC硬件错误(IIC Hardfault),系统无法正常工作!IIC连线是否接反?请移除IIC总线上的所有设备后重试!\n";
+
 // MicroPython runs as a task under FreeRTOS
 #define MP_TASK_PRIORITY        (ESP_TASK_PRIO_MIN + 1)
 
@@ -81,6 +87,58 @@
 int vprintf_null(const char *format, va_list ap) {
     // do nothing: this is used as a log target during raw repl mode
     return 0;
+}
+
+volatile uint32_t ticker_ticks_ms = 0;
+extern void mpython_music_tick(void);
+static void timer_1ms_ticker(void *args)
+{
+    ticker_ticks_ms += 1;
+    mpython_music_tick();
+}
+
+void mpython_display_exception(mp_obj_t exc_in)
+{
+    size_t n, *values;
+    mp_obj_exception_get_traceback(exc_in, &n, &values);
+    if (1) {
+        vstr_t vstr;
+        mp_print_t print;
+        vstr_init_print(&vstr, 50, &print);
+        #if MICROPY_ENABLE_SOURCE_LINE
+        if (n >= 3) {
+            mp_printf(&print, "line %u\n", values[1]);
+        }
+        #endif
+        if (mp_obj_is_native_exception_instance(exc_in)) {
+            mp_obj_exception_t *exc = (mp_obj_exception_t*)MP_OBJ_TO_PTR(exc_in);
+            mp_printf(&print, "%q:\n  ", exc->base.type->name);
+            if (exc->args != NULL && exc->args->len != 0) {
+                mp_obj_print_helper(&print, exc->args->items[0], PRINT_STR);
+            }
+        }
+        oled_init();
+        oled_clear();
+        oled_print(vstr_null_terminated_str(&vstr), 0, 0);
+        oled_show();
+        vstr_clear(&vstr);
+        oled_deinit();
+    }
+}
+
+void mpython_stop_timer(void) {
+    // disable all timer and thread created by main.py
+    for (timer_group_t g = TIMER_GROUP_0; g < TIMER_GROUP_MAX; g++) {
+        for (timer_idx_t i = TIMER_0; i < TIMER_MAX; i++) {
+            timer_pause(g, i);
+        }
+    }
+}
+
+void mpython_stop_thread(void) {
+    #if MICROPY_PY_THREAD
+    mp_thread_deinit();
+    #endif  
 }
 
 time_t platform_mbedtls_time(time_t *timer) {
@@ -122,6 +180,19 @@ void mp_task(void *pvParameter) {
     }
 
 soft_reset:
+    hw_init_flags = 0;
+    // startup
+    // iic总线错误,打印提示信息
+    if (oled_init() == false) { 
+        ESP_LOGE("system", "%s", msg_iic_failed);
+        hw_init_flags |= 0x0001;
+    } else {
+        oled_drawImg(img_mpython);
+        // oled_drawImg(img_InnovaBit);
+        oled_show();
+        oled_deinit();
+    }
+
     // initialise the stack pointer for the main thread
     mp_stack_set_top((void *)sp);
     mp_stack_set_limit(MICROPY_TASK_STACK_SIZE - MP_TASK_STACK_LIMIT_MARGIN);
@@ -138,6 +209,16 @@ soft_reset:
     machine_i2s_init0();
     #endif
 
+	// for music function
+	const esp_timer_create_args_t periodic_timer_args = {
+		.callback = &timer_1ms_ticker,
+		.name = "music tick timer"
+	};
+	esp_timer_handle_t periodic_timer;
+    ticker_ticks_ms = 0;
+	ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
+	ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 1000));
+    
     // run boot-up scripts
     pyexec_frozen_module("_boot.py", false);
     int ret = pyexec_file_if_exists("boot.py");

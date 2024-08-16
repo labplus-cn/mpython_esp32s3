@@ -25,6 +25,8 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/builtins/esp32_nvs.c
     ${MPY_PORT_DIR}/builtins/machine_pin.c
     ${MPY_PORT_DIR}/builtins/machine_touchpad.c
+    ${MPY_PORT_DIR}/builtins/modframebuf.c
+    ${MPY_PORT_DIR}/builtins/modtts.c
 )
 
 set(MICROPY_SOURCE_BOARD_DIR

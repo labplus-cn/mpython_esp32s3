@@ -20,10 +20,10 @@
         "bluetooth"
     ],
     "images": [
-        "classroot_kit.jpg"
+        "Ledong.jpg"
     ],
     "mcu": "esp32",
-    "product": "classroot_kit",
+    "product": "Ledong",
     "thumbnail": "",
     "url": "https://github.com/labplus-cn",
     "vendor": "labplus"
