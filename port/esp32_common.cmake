@@ -132,6 +132,7 @@ list(APPEND IDF_COMPONENTS
     esp_timer
     esp_wifi
     freertos
+    fatfs
     hal
     heap
     log

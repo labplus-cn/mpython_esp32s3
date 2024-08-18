@@ -443,3 +443,9 @@ es8388驱动以c代码实现，解音量控制问题。
 1、修改makefile加入对es8388.c/h编译。
 2、修改modcodec.c，加入es8388 init/deinit
 3、mpython-classroom-kit下面的的mpython.py注释掉es8388 python驱动实例化。
+
+2024.08.18
+重构音频解码模块，以适应音频录制、播放、离线TTS、ASR。
+
+1、解码芯片驱动，引用esp_codec_dev component实现，此comonent的实现框架见其readme.md.
+  

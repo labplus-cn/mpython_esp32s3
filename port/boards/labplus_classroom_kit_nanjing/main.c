@@ -99,31 +99,31 @@ static void timer_1ms_ticker(void *args)
 
 void mpython_display_exception(mp_obj_t exc_in)
 {
-    size_t n, *values;
-    mp_obj_exception_get_traceback(exc_in, &n, &values);
-    if (1) {
-        vstr_t vstr;
-        mp_print_t print;
-        vstr_init_print(&vstr, 50, &print);
-        #if MICROPY_ENABLE_SOURCE_LINE
-        if (n >= 3) {
-            mp_printf(&print, "line %u\n", values[1]);
-        }
-        #endif
-        if (mp_obj_is_native_exception_instance(exc_in)) {
-            mp_obj_exception_t *exc = (mp_obj_exception_t*)MP_OBJ_TO_PTR(exc_in);
-            mp_printf(&print, "%q:\n  ", exc->base.type->name);
-            if (exc->args != NULL && exc->args->len != 0) {
-                mp_obj_print_helper(&print, exc->args->items[0], PRINT_STR);
-            }
-        }
-        oled_init();
-        oled_clear();
-        oled_print(vstr_null_terminated_str(&vstr), 0, 0);
-        oled_show();
-        vstr_clear(&vstr);
-        oled_deinit();
-    }
+    // size_t n, *values;
+    // mp_obj_exception_get_traceback(exc_in, &n, &values);
+    // if (1) {
+    //     vstr_t vstr;
+    //     mp_print_t print;
+    //     vstr_init_print(&vstr, 50, &print);
+    //     #if MICROPY_ENABLE_SOURCE_LINE
+    //     if (n >= 3) {
+    //         mp_printf(&print, "line %u\n", values[1]);
+    //     }
+    //     #endif
+    //     if (mp_obj_is_native_exception_instance(exc_in)) {
+    //         mp_obj_exception_t *exc = (mp_obj_exception_t*)MP_OBJ_TO_PTR(exc_in);
+    //         mp_printf(&print, "%q:\n  ", exc->base.type->name);
+    //         if (exc->args != NULL && exc->args->len != 0) {
+    //             mp_obj_print_helper(&print, exc->args->items[0], PRINT_STR);
+    //         }
+    //     }
+    //     oled_init();
+    //     oled_clear();
+    //     oled_print(vstr_null_terminated_str(&vstr), 0, 0);
+    //     oled_show();
+    //     vstr_clear(&vstr);
+    //     oled_deinit();
+    // }
 }
 
 void mpython_stop_timer(void) {
@@ -180,18 +180,18 @@ void mp_task(void *pvParameter) {
     }
 
 soft_reset:
-    hw_init_flags = 0;
+    // hw_init_flags = 0;
     // startup
     // iic总线错误,打印提示信息
-    if (oled_init() == false) { 
-        ESP_LOGE("system", "%s", msg_iic_failed);
-        hw_init_flags |= 0x0001;
-    } else {
-        oled_drawImg(img_mpython);
-        // oled_drawImg(img_InnovaBit);
-        oled_show();
-        oled_deinit();
-    }
+    // if (oled_init() == false) { 
+    //     ESP_LOGE("system", "%s", msg_iic_failed);
+    //     hw_init_flags |= 0x0001;
+    // } else {
+    //     oled_drawImg(img_mpython);
+    //     // oled_drawImg(img_InnovaBit);
+    //     oled_show();
+    //     oled_deinit();
+    // }
 
     // initialise the stack pointer for the main thread
     mp_stack_set_top((void *)sp);

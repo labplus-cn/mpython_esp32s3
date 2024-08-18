@@ -31,7 +31,6 @@
 #define OUTP_SIZE (1152 * 4)
 #define output MP_STATE_PORT(mp3DecOutBuf)
 #define readBuf MP_STATE_PORT(mp3DecReadBuf)
-extern TaskHandle_t http_client_task_handel;
 extern EventGroupHandle_t xEventGroup;
 
 typedef struct{
@@ -185,7 +184,7 @@ static int mp3_decode(mp3_decode_t *decoder)
             //     decoder->mp3FrameInfo.bitrate, decoder->mp3FrameInfo.layer, decoder->mp3FrameInfo.nChans, 
             //     decoder->mp3FrameInfo.samprate, decoder->mp3FrameInfo.outputSamps);
         }
-        #if MICROPY_BUILDIN_DAC //内置DAC需转正数，加上间量处理
+        #if MICROPY_BUILDIN_DAC //内置DAC需转正数，加上偏移量处理
         for (int i = 0; i < decoder->mp3FrameInfo.outputSamps; ++i)
         {
             // output[i] = (short)((output[i]*255.0/65535) * player->volume); //16位－> 8位，加上直流分量，消除负值，使值范围在0-255.
