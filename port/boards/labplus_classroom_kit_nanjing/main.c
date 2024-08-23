@@ -71,7 +71,7 @@
 #include "modespnow.h"
 #endif
 
-static uint16_t hw_init_flags = 0;
+// static uint16_t hw_init_flags = 0;
 const char msg_iic_failed[] = "IIC硬件错误(IIC Hardfault),系统无法正常工作!IIC连线是否接反?请移除IIC总线上的所有设备后重试!\n";
 
 // MicroPython runs as a task under FreeRTOS

@@ -17,7 +17,7 @@
 
 #include "string.h"
 #include "es8388_codec.h"
-#include "codec/driver/labplus_classroom_kit_nanjing/bsp_board.h"
+#include "bsp_board.h"
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #include "driver/i2s_std.h"
 #include "driver/i2s_tdm.h"
