@@ -31,7 +31,7 @@
 #include "driver/i2c.h"
 #include "esp_rom_sys.h"
 #include "esp_check.h"
-#include "esp_vfs_fat.h"
+// #include "audio/fatfs/audio_file.h"
 #include "sdmmc_cmd.h"
 #if ((SOC_SDMMC_HOST_SUPPORTED) && (FUNC_SDMMC_EN))
 #include "driver/sdmmc_host.h"
@@ -66,9 +66,10 @@ esp_err_t bsp_i2c_init(i2c_port_t i2c_num, uint32_t clk_speed)
         .mode = I2C_MODE_MASTER,
         .scl_io_num = GPIO_I2C_SCL,
         .sda_io_num = GPIO_I2C_SDA,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_DISABLE,
+        .sda_pullup_en = GPIO_PULLUP_DISABLE,
         .master.clk_speed = clk_speed,
+        .clk_flags = I2C_SCLK_SRC_FLAG_AWARE_DFS,
     };
     esp_err_t ret = i2c_param_config(i2c_num, &i2c_cfg);
     if (ret != ESP_OK) {

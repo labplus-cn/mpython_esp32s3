@@ -1,5 +1,5 @@
 # 本文件会被顶层CMakeList.txt包含
-# 可以在本文件定义一些板级源文件及目�?
+# 可以在本文件定义一些板级源文件及目录
 
 set(SDKCONFIG_DEFAULTS
     boards/sdkconfig.base
@@ -22,6 +22,8 @@ set(MICROPY_SOURCE_BOARD
     # ${MPY_PORT_DIR}/drivers/startup/startup.c 
     ${MPY_PORT_DIR}/lib/utils/pyexec.c
     ${MPY_PORT_DIR}/lib/audio/driver/labplus_classroom_kit_nanjing/bsp_board.c
+    ${MPY_PORT_DIR}/lib/audio/audio_file.c
+    ${MPY_PORT_DIR}/lib/audio/esp_board_init.c
     ${MPY_PORT_DIR}/lib/audio/player.c
     ${MPY_PORT_DIR}/lib/audio/wav_decoder.c
     ${MPY_PORT_DIR}/lib/audio/wav_encoder.c
@@ -33,6 +35,7 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/builtins/modframebuf.c
     ${MPY_PORT_DIR}/builtins/modtts.c
     # ${MPY_PORT_DIR}/builtins/modasr.c
+    ${MPY_PORT_DIR}/builtins/modaudio.c
 )
 
 set(MICROPY_SOURCE_BOARD_DIR

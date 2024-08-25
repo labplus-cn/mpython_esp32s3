@@ -1,11 +1,11 @@
 /*
- * modcodec.c
+ * modaudio.c
  *
- *  Created on: 2019.02.03
+ *  Created on: 2024.08.23
  *      Author: zhaohuijiang
  */
-
-#include <stdlib.h>
+// #if MICROPY_PY_AUDIO
+#include <stdlib.h> 
 #include <string.h>
 #include "esp_err.h"
 #include <sys/stat.h>
@@ -17,147 +17,146 @@
 #include "py/nlr.h"
 #include "py/runtime.h"
 #include "py/objstr.h"
-#include "modmachine.h"
 #include "mphalport.h"
-#include "wave_head.h"
 #include "esp_log.h"
 #include "esp_system.h"
-#include "esp_http_client.h"
-#include "esp_task.h"
+
+#include "py/stream.h"
+#include "py/reader.h"
+#include "extmod/vfs.h"
 
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/timers.h"
+// #include "freertos/task.h"
+// #include "freertos/queue.h"
+// #include "freertos/timers.h"
 
 #include <time.h>
-#include <dirent.h>
+// #include <dirent.h>
 #include "soc/io_mux_reg.h"
-#include <math.h>
-#include "audio_player.h"    
-#include "helix_mp3_decoder.h"
-#include "modcodec.h"
-#include "audio_recorder.h"
-#include "local_play.h"
-#include "es8388.h"
+// #include "modcodec.h"
+#include "audio/include/player.h"
+#include "audio/include/esp_board_init.h"
+#include "audio/include/audio_file.h"
 
-// static const char *TAG = "audio";
+static const char *TAG = "audio";
 
 /* ---------------player ------------------------*/
-STATIC mp_obj_t audio_player_init(size_t n_args, const mp_obj_t *args)
+static mp_obj_t audio_player_init(size_t n_args, const mp_obj_t *args)
 {
     assert(0 <= n_args);
-
-    #if !MICROPY_BUILDIN_DAC
-    if (n_args == 1)
-    {
-        if(!es_i2c_obj){
-            es_i2c_obj = (mp_obj_base_t *)args[0];
-            audio_hal_codec_config_t cfg = AUDIO_CODEC_DEFAULT_CONFIG();
-            es8388_init(cfg);
-        }
+    if(n_args == 1){
+        
     }
-    else
-        mp_raise_ValueError(MP_ERROR_TEXT("Need a i2c object param."));  
-    #endif
-
-    player_init();
+    esp_board_init(16000, 2, 16);
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_player_init_obj, 0, 1, audio_player_init);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_player_init_obj, 0, 1, audio_player_init);
 
-STATIC mp_obj_t audio_player_deinit(void)
+static mp_obj_t audio_player_deinit(void)
 {
-    player_deinit();
     return mp_const_none; 
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(audio_player_deinit_obj, audio_player_deinit);
+static MP_DEFINE_CONST_FUN_OBJ_0(audio_player_deinit_obj, audio_player_deinit);
 
-STATIC mp_obj_t audio_play(mp_obj_t url)
+// static mp_obj_t audio_play(mp_obj_t url)
+// {
+//     const char *_url = mp_obj_str_get_str(url);
+//     ESP_LOGE(TAG, "%s", _url);
+//     fopen(_url, 'r');
+//     // player_play(_url);
+    
+//     return mp_const_none;
+// }
+// static MP_DEFINE_CONST_FUN_OBJ_1(audio_play_obj, audio_play);
+
+static mp_obj_t audio_play(mp_obj_t url)
 {
-    const char *_url = mp_obj_str_get_str(url);
-    // ESP_LOGE(TAG, "%s", _url);
-    player_play(_url);
+   const char *_url = mp_obj_str_get_str(url);
+
+   player_handle_t *player = player_create(_url, 2048, 0);
+   player_play(player, NULL);
+
+    // player_play(_url);
     
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(audio_play_obj, audio_play);
+static MP_DEFINE_CONST_FUN_OBJ_1(audio_play_obj, audio_play);
 
-STATIC mp_obj_t audio_resume(void)
+static mp_obj_t audio_resume(void)
 {
-    player_resume();
+    // player_resume();
     return mp_const_none;  
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(audio_resume_obj, audio_resume);
+static MP_DEFINE_CONST_FUN_OBJ_0(audio_resume_obj, audio_resume);
 
-STATIC mp_obj_t audio_stop(void)
+static mp_obj_t audio_stop(void)
 {
-    player_stop();
+    // player_stop();
     return mp_const_none;   
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(audio_stop_obj, audio_stop);
+static MP_DEFINE_CONST_FUN_OBJ_0(audio_stop_obj, audio_stop);
 
-STATIC mp_obj_t audio_pause(void)
+static mp_obj_t audio_pause(void)
 {
-    player_pause();
+    // player_pause();
     return  mp_const_none;   
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(audio_pause_obj, audio_pause);
+static MP_DEFINE_CONST_FUN_OBJ_0(audio_pause_obj, audio_pause);
 
-STATIC mp_obj_t audio_volume(mp_obj_t Volume)
+static mp_obj_t audio_volume(mp_obj_t Volume)
 {
     mp_int_t vol =  mp_obj_get_int(Volume);
     #if MICROPY_BUILDIN_DAC 
     player_set_volume(vol);
     #else
-    es8388_set_voice_volume(vol);
+    // es8388_set_voice_volume(vol);
     #endif
     return mp_const_none;   
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(audio_volume_obj, audio_volume);
+static MP_DEFINE_CONST_FUN_OBJ_1(audio_volume_obj, audio_volume);
 
-STATIC mp_obj_t audio_get_status(void)
+static mp_obj_t audio_get_status(void)
 {
-    player_status_t status = player_get_status();
-    if(status == RUNNING || status == PAUSED){
-        return MP_OBJ_NEW_SMALL_INT(1); 
-    }     
+    // player_status_t status = player_get_status();
+    // if(status == RUNNING || status == PAUSED){
+    //     return MP_OBJ_NEW_SMALL_INT(1); 
+    // }     
 
     return MP_OBJ_NEW_SMALL_INT(0);
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(audio_get_status_obj, audio_get_status);
+static MP_DEFINE_CONST_FUN_OBJ_0(audio_get_status_obj, audio_get_status);
 
 /* ------------------------recorder--------------------------*/
-STATIC mp_obj_t audio_recorder_init(size_t n_args, const mp_obj_t *args)
+static mp_obj_t audio_recorder_init(size_t n_args, const mp_obj_t *args)
 {
     assert(0 <= n_args);
 
-    #if !MICROPY_BUILDIN_DAC
-    if (n_args == 1)
-    {
-        if(!es_i2c_obj){
-            es_i2c_obj = (mp_obj_base_t *)args[0];
-            audio_hal_codec_config_t cfg = AUDIO_CODEC_DEFAULT_CONFIG();
-            es8388_init(cfg);
-        }
-    }
-    else
-        mp_raise_ValueError(MP_ERROR_TEXT("Need a i2c object param."));  
-    #endif
+    // #if !MICROPY_BUILDIN_DAC
+    // if (n_args == 1)
+    // {
+    //     if(!es_i2c_obj){
+    //         es_i2c_obj = (mp_obj_base_t *)args[0];
+    //         audio_hal_codec_config_t cfg = AUDIO_CODEC_DEFAULT_CONFIG();
+    //         es8388_init(cfg);
+    //     }
+    // }
+    // else
+    //     mp_raise_ValueError(MP_ERROR_TEXT("Need a i2c object param."));  
+    // #endif
     
-    recorder_init();
+    // recorder_init();
     return mp_const_none; 
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_recorder_init_obj, 0, 1, audio_recorder_init);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_recorder_init_obj, 0, 1, audio_recorder_init);
 
-STATIC mp_obj_t audio_loudness(void)
+static mp_obj_t audio_loudness(void)
 {
-    uint32_t loud = recorder_loudness();
-    return MP_OBJ_NEW_SMALL_INT(loud); 
+    // uint32_t loud = recorder_loudness();
+    return MP_OBJ_NEW_SMALL_INT(0); 
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(audio_loudness_obj, audio_loudness);
+static MP_DEFINE_CONST_FUN_OBJ_0(audio_loudness_obj, audio_loudness);
 
-STATIC mp_obj_t audio_record(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
+static mp_obj_t audio_record(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
 {
     enum { ARG_file_name, ARG_record_time};
     static const mp_arg_t allowed_args[] = {
@@ -168,22 +167,22 @@ STATIC mp_obj_t audio_record(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    recorder_record(mp_obj_str_get_str(args[ARG_file_name].u_obj), args[ARG_record_time].u_int); 
+    // recorder_record(mp_obj_str_get_str(args[ARG_file_name].u_obj), args[ARG_record_time].u_int); 
 
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_record_obj, 0, audio_record);
+static MP_DEFINE_CONST_FUN_OBJ_KW(audio_record_obj, 0, audio_record);
 
-STATIC mp_obj_t audio_recorder_deinit(void)
+static mp_obj_t audio_recorder_deinit(void)
 {
-    recorder_deinit();
+    // recorder_deinit();
     
     return mp_const_none; 
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(audio_recorder_deinit_obj, audio_recorder_deinit);
+static MP_DEFINE_CONST_FUN_OBJ_0(audio_recorder_deinit_obj, audio_recorder_deinit);
 
 /* -------------xunfei--------------------*/
-STATIC mp_obj_t audio_iat_config(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
+static mp_obj_t audio_iat_config(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
 {
     // enum {ARG_api_key, ARG_app_id, ARG_engine_type, ARG_aue};
     // static const mp_arg_t allowed_args[] = {
@@ -222,9 +221,9 @@ STATIC mp_obj_t audio_iat_config(size_t n_args, const mp_obj_t *pos_args, mp_map
 
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_iat_config_obj, 0, audio_iat_config);
+static MP_DEFINE_CONST_FUN_OBJ_KW(audio_iat_config_obj, 0, audio_iat_config);
 
-STATIC mp_obj_t audio_iat_record(mp_obj_t rec_time)
+static mp_obj_t audio_iat_record(mp_obj_t rec_time)
 {
     // recorder_t *recorder = get_recorder_handle();
    
@@ -240,9 +239,9 @@ STATIC mp_obj_t audio_iat_record(mp_obj_t rec_time)
     // }
     return mp_const_none;   
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(audio_iat_record_obj, audio_iat_record);
+static MP_DEFINE_CONST_FUN_OBJ_1(audio_iat_record_obj, audio_iat_record);
 
-STATIC mp_obj_t audio_iat(void)
+static mp_obj_t audio_iat(void)
 {
     // recorder_t *recorder = get_recorder_handle();
     // if(recorder != NULL && (recorder->iat_config_flag) && (recorder->iat_record_finish == true))
@@ -294,9 +293,9 @@ STATIC mp_obj_t audio_iat(void)
     
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(audio_iat_obj, audio_iat);
+static MP_DEFINE_CONST_FUN_OBJ_0(audio_iat_obj, audio_iat);
 
-STATIC mp_obj_t audio_webtts_config(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
+static mp_obj_t audio_webtts_config(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
 {
     // player_t *player = get_player_handle();
     // if((player != NULL) && (!(player->webtts_config_flag)))
@@ -334,9 +333,9 @@ STATIC mp_obj_t audio_webtts_config(size_t n_args, const mp_obj_t *pos_args, mp_
     // }
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_KW(audio_webtts_config_obj, 0, audio_webtts_config);
+static MP_DEFINE_CONST_FUN_OBJ_KW(audio_webtts_config_obj, 0, audio_webtts_config);
 
-STATIC mp_obj_t audio_webtts(mp_obj_t body)
+static mp_obj_t audio_webtts(mp_obj_t body)
 {
     // player_t *player = get_player_handle();
     // if((player != NULL) && (player->webtts_config_flag))
@@ -395,9 +394,9 @@ STATIC mp_obj_t audio_webtts(mp_obj_t body)
     
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(webtts_obj, audio_webtts);
+static MP_DEFINE_CONST_FUN_OBJ_1(webtts_obj, audio_webtts);
 
-STATIC const mp_map_elem_t mpython_audio_locals_dict_table[] = {
+static const mp_map_elem_t mpython_audio_locals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_audio)},
     {MP_OBJ_NEW_QSTR(MP_QSTR_player_init), (mp_obj_t)&audio_player_init_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_player_deinit), (mp_obj_t)&audio_player_deinit_obj},
@@ -418,9 +417,12 @@ STATIC const mp_map_elem_t mpython_audio_locals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR_xunfei_iat), (mp_obj_t)&audio_iat_obj},
 };
 
-STATIC MP_DEFINE_CONST_DICT(mpython_audio_locals_dict, mpython_audio_locals_dict_table);
+static MP_DEFINE_CONST_DICT(mpython_audio_locals_dict, mpython_audio_locals_dict_table);
 
 const mp_obj_module_t mp_module_audio = {
     .base = {&mp_type_module},
     .globals = (mp_obj_dict_t *)&mpython_audio_locals_dict,
 };
+
+MP_REGISTER_EXTENSIBLE_MODULE(MP_QSTR_audio, mp_module_audio);
+// #endif //#if MICROPY_PY_AUDIO

@@ -21,11 +21,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include "audio/include/audio_file.h"
 
 #define TAG(a, b, c, d) (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
 
 struct wav_decoder {
-	FILE *wav;
+	// FILE *wav;
+	mp_obj_t fs;
 	uint32_t data_length;
 
 	int format;
@@ -38,26 +40,37 @@ struct wav_decoder {
 
 static uint32_t read_tag(struct wav_decoder* wr) {
 	uint32_t tag = 0;
-	tag = (tag << 8) | fgetc(wr->wav);
-	tag = (tag << 8) | fgetc(wr->wav);
-	tag = (tag << 8) | fgetc(wr->wav);
-	tag = (tag << 8) | fgetc(wr->wav);
+	int n;
+	uint8_t data[4];
+	audio_file_read(wr->fs, &n, data, 4);
+	tag = (tag << 8) | data[0];
+	tag = (tag << 8) | data[1];
+	tag = (tag << 8) | data[2];
+	tag = (tag << 8) | data[3];
 	return tag;
 }
 
 static uint32_t read_int32(struct wav_decoder* wr) {
 	uint32_t value = 0;
-	value |= fgetc(wr->wav) <<  0;
-	value |= fgetc(wr->wav) <<  8;
-	value |= fgetc(wr->wav) << 16;
-	value |= fgetc(wr->wav) << 24;
+	int n;
+	uint8_t data[4];
+	audio_file_read(wr->fs, &n, data, 4);
+	// value |= fgetc(wr->wav) <<  0;
+	// value |= fgetc(wr->wav) <<  8;
+	// value |= fgetc(wr->wav) << 16;
+	// value |= fgetc(wr->wav) << 24;
+	value = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
 	return value;
 }
 
 static uint16_t read_int16(struct wav_decoder* wr) {
 	uint16_t value = 0;
-	value |= fgetc(wr->wav) << 0;
-	value |= fgetc(wr->wav) << 8;
+	int n;
+	uint8_t data[2];
+	audio_file_read(wr->fs, &n, data, 2);
+	// value |= fgetc(wr->wav) << 0;
+	// value |= fgetc(wr->wav) << 8;
+	value = data[0] + (data[1] << 8);
 	return value;
 }
 
@@ -65,71 +78,74 @@ void* wav_decoder_open(const char *filename) {
 	struct wav_decoder* wr = (struct wav_decoder*) malloc(sizeof(*wr));
 	long data_pos = 0;
 	memset(wr, 0, sizeof(*wr));
-
-	wr->wav = fopen(filename, "rb");
-	if (wr->wav == NULL) {
+	printf("file name: %s.", filename);
+	audio_file_open(filename, "r");
+	wr->fs = audio_file_open(filename, "r");
+	if (wr->fs == NULL) {
 		free(wr);
 		return NULL;
 	}
 
-	while (1) {
-		uint32_t tag, tag2, length;
-		tag = read_tag(wr);
-		if (feof(wr->wav))
-			break;
-		length = read_int32(wr);
-		if (tag != TAG('R', 'I', 'F', 'F') || length < 4) {
-			fseek(wr->wav, length, SEEK_CUR);
-			continue;
-		}
-		tag2 = read_tag(wr);
-		length -= 4;
-		if (tag2 != TAG('W', 'A', 'V', 'E')) {
-			fseek(wr->wav, length, SEEK_CUR);
-			continue;
-		}
-		// RIFF chunk found, iterate through it
-		while (length >= 8) {
-			uint32_t subtag, sublength;
-			subtag = read_tag(wr);
-			if (feof(wr->wav))
-				break;
-			sublength = read_int32(wr);
-			length -= 8;
-			if (length < sublength)
-				break;
-			if (subtag == TAG('f', 'm', 't', ' ')) {
-				if (sublength < 16) {
-					// Insufficient data for 'fmt '
-					break;
-				}
-				wr->format          = read_int16(wr);
-				wr->channels        = read_int16(wr);
-				wr->sample_rate     = read_int32(wr);
-				wr->byte_rate       = read_int32(wr);
-				wr->block_align     = read_int16(wr);
-				wr->bits_per_sample = read_int16(wr);
-			} else if (subtag == TAG('d', 'a', 't', 'a')) {
-				data_pos = ftell(wr->wav);
-				wr->data_length = sublength;
-				fseek(wr->wav, sublength, SEEK_CUR);
-			} else {
-				fseek(wr->wav, sublength, SEEK_CUR);
-			}
-			length -= sublength;
-		}
-		if (length > 0) {
-			// Bad chunk?
-			fseek(wr->wav, length, SEEK_CUR);
-		}
-	}
-	fseek(wr->wav, data_pos, SEEK_SET);
+	// while (1) {
+	// 	uint32_t tag, tag2, length;
+	// 	tag = read_tag(wr);
+	// 	// if (feof(wr->fs))
+	// 	// 	break;
+	// 	length = read_int32(wr);
+	// 	if (tag != TAG('R', 'I', 'F', 'F') || length < 4) {
+	// 		audio_file_seek(wr->fs, length, SEEK_CUR);
+	// 		continue;
+	// 	}
+	// 	printf("1111");
+	// 	tag2 = read_tag(wr);
+	// 	length -= 4;
+	// 	if (tag2 != TAG('W', 'A', 'V', 'E')) {
+	// 		audio_file_seek(wr->fs, length, SEEK_CUR);
+	// 		continue;
+	// 	}
+	// 	printf("2222");
+	// 	// RIFF chunk found, iterate through it
+	// 	while (length >= 8) {
+	// 		uint32_t subtag, sublength;
+	// 		subtag = read_tag(wr);
+	// 		// if (feof(wr->fs))
+	// 		// 	break;
+	// 		sublength = read_int32(wr);
+	// 		length -= 8;
+	// 		if (length < sublength)
+	// 			break;
+	// 		if (subtag == TAG('f', 'm', 't', ' ')) {
+	// 			if (sublength < 16) {
+	// 				// Insufficient data for 'fmt '
+	// 				break;
+	// 			}
+	// 			wr->format          = read_int16(wr);
+	// 			wr->channels        = read_int16(wr);
+	// 			wr->sample_rate     = read_int32(wr);
+	// 			wr->byte_rate       = read_int32(wr);
+	// 			wr->block_align     = read_int16(wr);
+	// 			wr->bits_per_sample = read_int16(wr);
+	// 		} else if (subtag == TAG('d', 'a', 't', 'a')) {
+	// 			data_pos = audio_file_tell(wr->fs);
+	// 			wr->data_length = sublength;
+	// 			audio_file_seek(wr->fs, sublength, SEEK_CUR);
+	// 		} else {
+	// 			audio_file_seek(wr->fs, sublength, SEEK_CUR);
+	// 		}
+	// 		length -= sublength;
+	// 	}
+	// 	if (length > 0) {
+	// 		// Bad chunk?
+	// 		audio_file_seek(wr->fs, length, SEEK_CUR);
+	// 	}
+	// }
+	// audio_file_seek(wr->fs, data_pos, SEEK_SET);
 	return wr;
 }
 
 void wav_decoder_close(void* obj) {
 	struct wav_decoder* wr = (struct wav_decoder*) obj;
-	fclose(wr->wav);
+	audio_file_close(wr->fs);
 	free(wr);
 }
 
@@ -150,12 +166,13 @@ int wav_decoder_get_header(void* obj, int* format, int* channels, int* sample_ra
 
 int wav_decoder_run(void* obj, unsigned char* data, unsigned int length) {
 	struct wav_decoder* wr = (struct wav_decoder*) obj;
-	int n;
-	if (wr->wav == NULL)
+	int n, flag;
+	if (wr->fs == NULL)
 		return -1;
 	if (length > wr->data_length)
 		length = wr->data_length;
-	n = fread(data, 1, length, wr->wav);
+	// n = fread(data, 1, length, wr->wav);
+	flag = audio_file_read(wr->fs, &n, data, length);
 	wr->data_length -= length;
 	return n;
 }

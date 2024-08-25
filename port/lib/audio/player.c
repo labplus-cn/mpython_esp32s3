@@ -9,23 +9,10 @@
 #include <sys/stat.h>
 #include "audio/include/esp_board_init.h"
 #include <dirent.h>
+#include "audio/include/audio_file.h"
 
 #define CODEC_CHANNEL 2
 #define CODEC_SAMPLE_RATE 16000
-
-typedef struct
-{
-    QueueHandle_t player_queue;
-    int rb_size;
-    int frame_size;
-    char **file_list;
-    int file_num;
-    int max_file_num;
-    int player_state;
-    int vol;
-    TaskHandle_t stream_in;
-    TaskHandle_t stream_out;
-} player_handle_t;
 
 void stream_in_task(void *arg)
 {
@@ -34,43 +21,32 @@ void stream_in_task(void *arg)
     void * wav_decoder = NULL;
     int cur_file_num = 0;
     printf("create stream in\n");
-    int count = 0;
+
     int channels = CODEC_CHANNEL;
     int sample_rate = CODEC_SAMPLE_RATE;
+    wav_decoder = wav_decoder_open(player->audio_file);
+    if (wav_decoder == NULL) {
+        printf("can not find %s.\n", player->audio_file);
+        return;
+    } else {
+        channels = wav_decoder_get_channel(wav_decoder);
+        sample_rate = wav_decoder_get_sample_rate(wav_decoder);
+        printf("start to play %s, channels:%d, sample rate:%d \n", player->audio_file,
+                channels, sample_rate );
+    }
 
     while (1) {
-        count++;
         switch (player->player_state) {
         case 1: // play
-            if (player->file_num <= 0) {
-                printf("playlist is empty\n");
-                player->player_state = 0;
-            } else {
+            int size = wav_decoder_run(wav_decoder, buffer, player->frame_size);
 
-                while (wav_decoder == NULL) {
-                    wav_decoder = wav_decoder_open(player->file_list[cur_file_num]);
-
-                    if (wav_decoder == NULL) {
-                        printf("can not find %s, play next song\n", player->file_list[cur_file_num]);
-                    } else {
-                        channels = wav_decoder_get_channel(wav_decoder);
-                        sample_rate = wav_decoder_get_sample_rate(wav_decoder);
-                        printf("start to play %s, channels:%d, sample rate:%d \n", player->file_list[cur_file_num],
-                               channels, sample_rate );
-                        cur_file_num++;
-                        cur_file_num = cur_file_num % player->file_num;
-                    }
-                }
-
-                int size = wav_decoder_run(wav_decoder, buffer, player->frame_size);
-
-                if (size < player->frame_size) {
-                    memset(buffer + size, 0, player->frame_size - size);
-                    wav_decoder_close(wav_decoder);
-                    wav_decoder = NULL;
-                }
-                xQueueSend(player->player_queue, buffer, portMAX_DELAY);
+            if (size < player->frame_size) { //要结束了
+                memset(buffer + size, 0, player->frame_size - size); //清掉buffer无效数据区
+                wav_decoder_close(wav_decoder);
+                wav_decoder = NULL;
+                player->player_state = 4;
             }
+            xQueueSend(player->player_queue, buffer, portMAX_DELAY);
             break;
         case 2: // pause or stop
             vTaskDelay(16 / portTICK_PERIOD_MS);
@@ -163,7 +139,7 @@ int file_list_scan(void *handle, const char *path)
     return player->file_num;
 }
 
-void *player_create(int ringbuf_size, unsigned int core_num)
+void *player_create(const char *file, int ringbuf_size, unsigned int core_num)
 {
     if (ringbuf_size < 1024)
         ringbuf_size = 1024;
@@ -181,9 +157,10 @@ void *player_create(int ringbuf_size, unsigned int core_num)
     player->player_state = 0;
     player->file_num = 0;
     player->max_file_num = 10;
-    player->file_list = malloc(sizeof(char *)*player->max_file_num);
-    for (int i = 0; i < player->max_file_num; i++)
-        player->file_list[i] = calloc(FATFS_PATH_LENGTH_MAX, sizeof(char));
+    // player->file_list = malloc(sizeof(char *)*player->max_file_num);
+    // for (int i = 0; i < player->max_file_num; i++)
+    //     player->file_list[i] = calloc(FATFS_PATH_LENGTH_MAX, sizeof(char));
+    player->audio_file = file;
 
     xTaskCreatePinnedToCore(&stream_in_task, "stream_in", 2 * 1024, (void*)player, 8, NULL, core_num);
     xTaskCreatePinnedToCore(&stream_out_task, "stream_out", 2 * 1024, (void*)player, 8, NULL, core_num);
@@ -196,7 +173,7 @@ void player_play(void *handle, const char *path)
     player_handle_t *player = handle;
     //create file list
 
-    file_list_scan(player, path);
+    // file_list_scan(player, path);
     // for (int i=0; i<player->file_num; i++)
     //  printf("%s\n", player->file_list[i]);
 
