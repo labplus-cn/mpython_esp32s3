@@ -39,7 +39,7 @@
 #include "extmod/virtpin.h"
 #include "mphalport.h"
 #include "modmachine.h"
-#include "machine_pin.h"
+#include "machine_pin_1.h"
 #include "machine_rtc.h"
 #include "modesp32.h"
 #include "genhdr/pins.h"

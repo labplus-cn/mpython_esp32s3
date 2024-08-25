@@ -132,7 +132,7 @@ list(APPEND IDF_COMPONENTS
     esp_timer
     esp_wifi
     freertos
-    fatfs
+    # fatfs
     hal
     heap
     log
@@ -218,8 +218,8 @@ include(${MICROPY_DIR}/py/mkrules.cmake)
 
 # Generate source files for named pins (requires mkrules.cmake for MICROPY_GENHDR_DIR).
 
-set(GEN_PINS_PREFIX "${MICROPYTHON_PORT_DIR}/boards/pins_prefix.c")
-set(GEN_PINS_MKPINS "${MICROPYTHON_PORT_DIR}/boards/make-pins.py")
+set(GEN_PINS_PREFIX "${MPY_PORT_DIR}/boards/pins_prefix.c")
+set(GEN_PINS_MKPINS "${MPY_PORT_DIR}/boards/make-pins.py")
 set(GEN_PINS_SRC "${CMAKE_BINARY_DIR}/pins.c")
 set(GEN_PINS_HDR "${MICROPY_GENHDR_DIR}/pins.h")
 
