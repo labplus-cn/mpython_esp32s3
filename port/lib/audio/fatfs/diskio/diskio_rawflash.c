@@ -6,13 +6,12 @@
 
 #include <string.h>
 #include "diskio_impl.h"
-#include "ffconf.h"
-#include "ff.h"
+#include "audio/fatfs/src/ffconf.h"
+#include "audio/fatfs/src/ff.h"
 #include "esp_log.h"
 #include "diskio_rawflash.h"
 #include "esp_compiler.h"
 #include "spi_flash_mmap.h"
-
 
 static const char* TAG = "diskio_rawflash";
 

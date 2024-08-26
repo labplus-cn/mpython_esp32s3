@@ -13,8 +13,8 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include "diskio_impl.h"
-#include "ffconf.h"
-#include "ff.h"
+#include "audio/fatfs/src/ffconf.h"
+#include "audio/fatfs/src/ff.h"
 
 static ffs_diskio_impl_t * s_impls[FF_VOLUMES] = { NULL };
 
@@ -102,7 +102,7 @@ DRESULT ffs_disk_ioctl (BYTE pdrv, BYTE cmd, void* buff)
     return s_impls[pdrv]->ioctl(pdrv, cmd, buff);
 }
 
-DWORD get_fattime(void)
+DWORD get_fattime_1(void)
 {
     time_t t = time(NULL);
     struct tm tmr;

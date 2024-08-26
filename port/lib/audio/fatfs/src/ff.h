@@ -353,7 +353,7 @@ TCHAR* fs_gets (TCHAR* buff, int len, FIL* fp);						/* Get a string from the fi
 
 /* RTC function */
 #if !FF_FS_READONLY && !FF_FS_NORTC
-DWORD get_fattime (void);
+DWORD get_fattime_1 (void);
 #endif
 
 /* LFN support functions */
@@ -367,7 +367,7 @@ void* ffs_memalloc (UINT msize);			/* Allocate memory block */
 void ffs_memfree (void* mblock);			/* Free memory block */
 #endif
 
-/* Sync functions */
+/* Sync functions */ 
 #if FF_FS_REENTRANT
 int ffs_cre_syncobj (BYTE vol, FF_SYNC_t* sobj);	/* Create a sync object */
 int ffs_req_grant (FF_SYNC_t sobj);		/* Lock sync object */
@@ -414,6 +414,7 @@ int ffs_del_syncobj (FF_SYNC_t sobj);	/* Delete a sync object */
 #define AM_DIR	0x10	/* Directory */
 #define AM_ARC	0x20	/* Archive */
 
+/* Some API fucntions are implemented as macro */
 
 #ifdef __cplusplus
 }

@@ -6,6 +6,8 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "ff.h"
 #include "sdkconfig.h"
 #ifdef CONFIG_FATFS_ALLOC_PREFER_EXTRAM

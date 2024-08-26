@@ -22,6 +22,13 @@ set(MICROPY_SOURCE_BOARD
     # ${MPY_PORT_DIR}/drivers/startup/startup.c 
     ${MPY_PORT_DIR}/lib/utils/pyexec.c
     ${MPY_PORT_DIR}/lib/audio/driver/labplus_classroom_kit_nanjing/bsp_board.c
+    ${MPY_PORT_DIR}/lib/audio/fatfs/diskio/diskio.c
+    ${MPY_PORT_DIR}/lib/audio/fatfs/diskio/diskio_rawflash.c
+    # ${MPY_PORT_DIR}/lib/audio/fatfs/src/diskio.c
+    ${MPY_PORT_DIR}/lib/audio/fatfs/src/ff.c
+    ${MPY_PORT_DIR}/lib/audio/fatfs/src/ffsystem.c
+    ${MPY_PORT_DIR}/lib/audio/fatfs/src/ffunicode.c
+    ${MPY_PORT_DIR}/lib/audio/fatfs/vfs/vfs_fat_spiflash.c
     ${MPY_PORT_DIR}/lib/audio/audio_file.c
     ${MPY_PORT_DIR}/lib/audio/esp_board_init.c
     ${MPY_PORT_DIR}/lib/audio/player.c
