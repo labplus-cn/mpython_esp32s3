@@ -17,7 +17,7 @@
 /  and optional writing functions as well. */
 
 
-#define FF_FS_MINIMIZE	1
+#define FF_FS_MINIMIZE	0
 /* This option defines minimization level to remove some basic API functions.
 /
 /   0: Basic functions are fully enabled.
@@ -49,7 +49,7 @@
 /  (0:Disable or 1:Enable) Also FF_FS_READONLY needs to be 0 to enable this option. */
 
 
-#define FF_USE_LABEL	0
+#define FF_USE_LABEL	1
 /* This option switches volume label functions, fs_getlabel() and fs_setlabel().
 /  (0:Disable or 1:Enable) */
 
@@ -120,12 +120,12 @@
 #elif defined(CONFIG_FATFS_LFN_HEAP)
 #define FF_USE_LFN    3
 #else /* CONFIG_FATFS_LFN_NONE */
-#define FF_USE_LFN    0
+#define FF_USE_LFN    2
 #endif
 
-#ifdef CONFIG_FATFS_MAX_LFN
-#define FF_MAX_LFN    CONFIG_FATFS_MAX_LFN
-#endif
+// #ifdef CONFIG_FATFS_MAX_LFN
+#define FF_MAX_LFN    128
+// #endif
 
 /* The FF_USE_LFN switches the support for LFN (long file name).
 /
@@ -169,7 +169,7 @@
 /  on character encoding. When LFN is not enabled, these options have no effect. */
 
 
-#define FF_FS_RPATH		0
+#define FF_FS_RPATH		2
 /* This option configures support for relative path.
 /
 /   0: Disable relative path and remove related functions.
@@ -200,7 +200,7 @@
 */
 
 
-#define FF_MULTI_PARTITION	1
+#define FF_MULTI_PARTITION	0
 /* This option switches support for multiple volumes on the physical drive.
 /  By default (0), each logical drive number is bound to the same physical drive
 /  number and only an FAT volume found on the physical drive will be mounted.
@@ -211,7 +211,7 @@
 /* SD card sector size */
 #define FF_SS_SDCARD      512
 /* wear_levelling library sector size */
-#define FF_SS_WL          CONFIG_WL_SECTOR_SIZE
+#define FF_SS_WL          512
 
 #define FF_MIN_SS     MIN(FF_SS_SDCARD, FF_SS_WL)
 #define FF_MAX_SS     MAX(FF_SS_SDCARD, FF_SS_WL)
@@ -251,7 +251,7 @@
 /  buffer in the filesystem object (FATFS) is used for the file data transfer. */
 
 
-#define FF_FS_EXFAT		0
+#define FF_FS_EXFAT		1
 /* This option switches support for exFAT filesystem. (0:Disable or 1:Enable)
 /  To enable exFAT, also LFN needs to be enabled. (FF_USE_LFN >= 1)
 /  Note that enabling exFAT discards ANSI C (C89) compatibility. */
