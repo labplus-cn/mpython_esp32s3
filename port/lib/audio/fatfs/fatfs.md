@@ -8,9 +8,9 @@
         ```c
         DSTATUS disk_initialize (BYTE pdrv);
         DSTATUS disk_status (BYTE pdrv);
-        DRESULT disk_read (BYTE pdrv, BYTE* buff, LBA_t sector, UINT count);
-        DRESULT disk_write (BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count);
-        DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
+        DRESULT disk_read_1 (BYTE pdrv, BYTE* buff, LBA_t sector, UINT count);
+        DRESULT disk_write_1 (BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count);
+        DRESULT disk_ioctl_1 (BYTE pdrv, BYTE cmd, void* buff);
         ```
 
         应用程序驱动必须实现以上接口。用户系统可能会有多个磁盘，通过pdrv区分，因此应用程序必须实pdrv和相应磁盘IO驱动实现对应。
@@ -22,9 +22,9 @@
     ```c
     #define disk_initialize     ffs_disk_initialize
     #define disk_status         ffs_disk_status
-    #define disk_read           ffs_disk_read
-    #define disk_write          ffs_disk_write
-    #define disk_ioctl          ffs_disk_ioctl
+    #define disk_read_1           ffs_disk_read_1
+    #define disk_write_1          ffs_disk_write_1
+    #define disk_ioctl_1          ffs_disk_ioctl_1
     ```
 
     diskio.c中实现了这些接口。
@@ -34,7 +34,7 @@
     1. 定义一结构（结构成员为diskio驱动aip指针）指针数组，数组各成员保存pdrv对应磁盘驱动api组成的结构的指针
 
         ```c
-        static ffs_diskio_impl_t * s_impls[FF_VOLUMES] = { NULL };
+        static diskio_impl_t * s_impls[FF_VOLUMES] = { NULL };
         ```
 
         ```c
@@ -44,7 +44,7 @@
             DRESULT (*read) (unsigned char pdrv, unsigned char* buff, uint32_t sector, unsigned count);  /*!< sector read function */
             DRESULT (*write) (unsigned char pdrv, const unsigned char* buff, uint32_t sector, unsigned count);   /*!< sector write function */
             DRESULT (*ioctl) (unsigned char pdrv, unsigned char cmd, void* buff); /*!< function to get info about disk and do some misc operations */
-        } ffs_diskio_impl_t;
+        } diskio_impl_t;
         ```
 
     2. diskio_rawflash.c/h为spiflash的读写驱动，把FAT的扇区转为spiflash地址读写，实现了以下api。
@@ -88,15 +88,15 @@
             // connect driver to FATFS
             2、通过判断s_impls[]对应成员是否为空，获取对应数组索引，做为pdrv值。
             BYTE pdrv = 0xFF;
-            if (ffs_diskio_get_drive(&pdrv) != ESP_OK) {
+            if (diskio_get_drive(&pdrv) != ESP_OK) {
                 ...
             }
 
             3、此函数实现：
                 a) 把欲操作spifash分区跟pdrv关联起来，分区保存在pdrv为索引的数组ffs_raw_handles[pdrv] = part_handle中。
-                b)调用ffs_diskio_register(pdrv, &raw_impl)把底层api填充到以pdrv为索引的raw_impl[]结构的函数指针中去。
+                b)调用diskio_register(pdrv, &raw_impl)把底层api填充到以pdrv为索引的raw_impl[]结构的函数指针中去。
                 这样，fatfs只需通过pdrv参数，就可实现对对应磁盘上的文件系统实实io操作。
-            result = ffs_diskio_register_raw_partition(pdrv, data_partition); //把pdrv跟文件系统分区关联起来。
+            result = diskio_register_raw_partition(pdrv, data_partition); //把pdrv跟文件系统分区关联起来。
             if (result != ESP_OK) {
                 ...
             }

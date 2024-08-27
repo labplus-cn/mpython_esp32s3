@@ -163,7 +163,7 @@ void *player_create(const char *file, int ringbuf_size, unsigned int core_num)
     player->audio_file = file;
 
     xTaskCreatePinnedToCore(&stream_in_task, "stream_in", 2 * 1024, (void*)player, 8, NULL, core_num);
-    xTaskCreatePinnedToCore(&stream_out_task, "stream_out", 2 * 1024, (void*)player, 8, NULL, core_num);
+    // xTaskCreatePinnedToCore(&stream_out_task, "stream_out", 2 * 1024, (void*)player, 8, NULL, core_num);
 
     return player;
 }

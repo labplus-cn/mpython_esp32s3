@@ -9,8 +9,9 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_vfs_fat.h"
-#include "audio/fatfs/diskio/diskio_impl.h"
-#include "audio/fatfs/diskio/diskio_rawflash.h"
+#include "audio/fatfs/src/diskio_impl.h"
+#include "audio/fatfs/src/diskio_rawflash.h"
+#include "audio/fatfs/src/ff.h"
 
 static const char* TAG = "vfs_fat_spiflash";
 static FATFS *fs;
@@ -27,15 +28,15 @@ esp_err_t esp_vfs_fat_spiflash_mount(const char* partition_label)
 
     // connect driver to FATFS
     BYTE pdrv = 0xFF;
-    if (ffs_diskio_get_drive(&pdrv) != ESP_OK) {
+    if (diskio_get_drive(&pdrv) != ESP_OK) {
         ESP_LOGD(TAG, "the maximum count of volumes is already mounted");
         return ESP_ERR_NO_MEM;
     }
     ESP_LOGD(TAG, "using pdrv=%i", pdrv);
 
-    result = ffs_diskio_register_raw_partition(pdrv, data_partition); //把pdrv跟文件系统分区关联起来。
+    result = diskio_register_raw_partition(pdrv, data_partition); //把pdrv跟文件系统分区关联起来。
     if (result != ESP_OK) {
-        ESP_LOGE(TAG, "ffs_diskio_register_raw_partition failed pdrv=%i, error - 0x(%x)", pdrv, result);
+        ESP_LOGE(TAG, "diskio_register_raw_partition failed pdrv=%i, error - 0x(%x)", pdrv, result);
         goto fail;
     }
 
@@ -45,15 +46,14 @@ esp_err_t esp_vfs_fat_spiflash_mount(const char* partition_label)
     }
 
     // Try to mount partition
-     ESP_LOGE(TAG, "pdrv: (%d)", pdrv);
-    char drv[3] = {(char)('0' + pdrv), ':', 0};
-     ESP_LOGE(TAG, "drv: (%s)", drv);
-    FRESULT fresult = fs_mount(fs, drv, 1);
+    // char drv[3] = {(char)('0' + pdrv), ':', 0};
+    fs->drv = pdrv;
+    FRESULT fresult = fs_mount(fs);
     if (fresult != FR_OK) {
-        ESP_LOGE(TAG, "fs_mount failed (%d)", fresult);
         result = ESP_FAIL;
         goto fail;
     }
+    ESP_LOGE(TAG, "fs_mount sucess.\n");
     return ESP_OK;
 
 fail:
@@ -76,8 +76,8 @@ esp_err_t esp_vfs_fat_spiflash_unmount(const char* partition_label)
         return ESP_ERR_INVALID_STATE;
     }
 
-    char drv[3] = {(char)('0' + pdrv), ':', 0};
-    fs_mount(0, drv, 0);
+    // char drv[3] = {(char)('0' + pdrv), ':', 0};
+    fs_mount(fs);
     ffs_diskio_unregister(pdrv);
     if(fs){
         ffs_memfree(fs);

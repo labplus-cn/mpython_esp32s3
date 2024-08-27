@@ -25,8 +25,8 @@ typedef uint32_t DWORD;
 
 #define FF_DRV_NOT_USED 0xFF
 
-#include "audio/fatfs/src/diskio.h"
 #include "esp_err.h"
+#include "diskio.h"
 
 /**
  * Structure of pointers to disk IO driver functions.
@@ -39,7 +39,7 @@ typedef struct {
     DRESULT (*read) (unsigned char pdrv, unsigned char* buff, uint32_t sector, unsigned count);  /*!< sector read function */
     DRESULT (*write) (unsigned char pdrv, const unsigned char* buff, uint32_t sector, unsigned count);   /*!< sector write function */
     DRESULT (*ioctl) (unsigned char pdrv, unsigned char cmd, void* buff); /*!< function to get info about disk and do some misc operations */
-} ffs_diskio_impl_t;
+} diskio_impl_t;
 
 /**
  * Register or unregister diskio driver for given drive number.
@@ -48,12 +48,12 @@ typedef struct {
  * corresponding function in discio_impl for given pdrv will be called.
  *
  * @param pdrv drive number
- * @param discio_impl   pointer to ffs_diskio_impl_t structure with diskio functions
+ * @param discio_impl   pointer to diskio_impl_t structure with diskio functions
  *                      or NULL to unregister and free previously registered drive
  */
-void ffs_diskio_register(BYTE pdrv, const ffs_diskio_impl_t* discio_impl);
+void diskio_register(BYTE pdrv, const diskio_impl_t* discio_impl);
 
-#define ffs_diskio_unregister(pdrv_) ffs_diskio_register(pdrv_, NULL)
+#define ffs_diskio_unregister(pdrv_) diskio_register(pdrv_, NULL)
 
 
 /**
@@ -64,7 +64,7 @@ void ffs_diskio_register(BYTE pdrv, const ffs_diskio_impl_t* discio_impl);
  * @return  ESP_OK              on success
  *          ESP_ERR_NOT_FOUND   if all drives are attached
  */
-esp_err_t ffs_diskio_get_drive(BYTE* out_pdrv);
+esp_err_t diskio_get_drive(BYTE* out_pdrv);
 
 
 #ifdef __cplusplus

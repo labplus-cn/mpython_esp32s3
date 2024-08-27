@@ -6,8 +6,8 @@
 
 #include <string.h>
 #include "diskio_impl.h"
-#include "audio/fatfs/src/ffconf.h"
-#include "audio/fatfs/src/ff.h"
+#include "ffconf.h"
+#include "ff.h"
 #include "esp_log.h"
 #include "diskio_rawflash.h"
 #include "esp_compiler.h"
@@ -53,6 +53,11 @@ DRESULT ffs_raw_ioctl (BYTE pdrv, BYTE cmd, void *buff)
     ESP_LOGV(TAG, "ffs_raw_ioctl: cmd=%in", cmd);
     assert(part);
     switch (cmd) {
+        case IOCTL_INIT:
+            *((BYTE *) buff) = 0x0;
+            return RES_OK;
+        case IOCTL_STATUS:
+        case CTRL_TRIM:
         case CTRL_SYNC:
             return RES_OK;
         case GET_SECTOR_COUNT:
@@ -68,19 +73,19 @@ DRESULT ffs_raw_ioctl (BYTE pdrv, BYTE cmd, void *buff)
 }
 
 
-esp_err_t ffs_diskio_register_raw_partition(BYTE pdrv, const esp_partition_t* part_handle)
+esp_err_t diskio_register_raw_partition(BYTE pdrv, const esp_partition_t* part_handle)
 {
     if (pdrv >= FF_VOLUMES) {
         return ESP_ERR_INVALID_ARG;
     }
-    static const ffs_diskio_impl_t raw_impl = {
+    static const diskio_impl_t raw_impl = {
         .init = &ffs_raw_initialize,
         .status = &ffs_raw_status,
         .read = &ffs_raw_read,
         .write = &ffs_raw_write,
         .ioctl = &ffs_raw_ioctl
     };
-    ffs_diskio_register(pdrv, &raw_impl);
+    diskio_register(pdrv, &raw_impl);
     ffs_raw_handles[pdrv] = part_handle;
     return ESP_OK;
 
