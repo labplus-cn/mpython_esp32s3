@@ -36,17 +36,13 @@
 // #include "modcodec.h"
 #include "audio/include/player.h"
 #include "audio/include/esp_board_init.h"
-#include "audio/include/audio_file.h"
+#include "audio/include/recorder.h"
 
 static const char *TAG = "audio";
 
 /* ---------------player ------------------------*/
 static mp_obj_t audio_player_init(size_t n_args, const mp_obj_t *args)
 {
-    assert(0 <= n_args);
-    if(n_args == 1){
-        
-    }
     esp_board_init(16000, 2, 16);
     return mp_const_none;
 }
@@ -58,29 +54,18 @@ static mp_obj_t audio_player_deinit(void)
 }
 static MP_DEFINE_CONST_FUN_OBJ_0(audio_player_deinit_obj, audio_player_deinit);
 
-// static mp_obj_t audio_play(mp_obj_t url)
-// {
-//     const char *_url = mp_obj_str_get_str(url);
-//     ESP_LOGE(TAG, "%s", _url);
-//     fopen(_url, 'r');
-//     // player_play(_url);
-    
-//     return mp_const_none;
-// }
-// static MP_DEFINE_CONST_FUN_OBJ_1(audio_play_obj, audio_play);
-
 static mp_obj_t audio_play(mp_obj_t url)
+// static mp_obj_t audio_play(void)
 {
    const char *_url = mp_obj_str_get_str(url);
 
-   player_handle_t *player = player_create(_url, 2048, 0);
+   player_handle_t *player = player_create(_url, 4096, 1);
    player_play(player, NULL);
-
-    // player_play(_url);
     
     return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(audio_play_obj, audio_play);
+// static MP_DEFINE_CONST_FUN_OBJ_0(audio_play_obj, audio_play);
 
 static mp_obj_t audio_resume(void)
 {
@@ -129,22 +114,7 @@ static MP_DEFINE_CONST_FUN_OBJ_0(audio_get_status_obj, audio_get_status);
 /* ------------------------recorder--------------------------*/
 static mp_obj_t audio_recorder_init(size_t n_args, const mp_obj_t *args)
 {
-    assert(0 <= n_args);
-
-    // #if !MICROPY_BUILDIN_DAC
-    // if (n_args == 1)
-    // {
-    //     if(!es_i2c_obj){
-    //         es_i2c_obj = (mp_obj_base_t *)args[0];
-    //         audio_hal_codec_config_t cfg = AUDIO_CODEC_DEFAULT_CONFIG();
-    //         es8388_init(cfg);
-    //     }
-    // }
-    // else
-    //     mp_raise_ValueError(MP_ERROR_TEXT("Need a i2c object param."));  
-    // #endif
-    
-    // recorder_init();
+    esp_board_init(16000, 2, 32);
     return mp_const_none; 
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_recorder_init_obj, 0, 1, audio_recorder_init);
@@ -167,7 +137,7 @@ static mp_obj_t audio_record(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    // recorder_record(mp_obj_str_get_str(args[ARG_file_name].u_obj), args[ARG_record_time].u_int); 
+    recorder_recorde(mp_obj_str_get_str(args[ARG_file_name].u_obj), args[ARG_record_time].u_int); 
 
     return mp_const_none;
 }

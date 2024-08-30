@@ -2,6 +2,7 @@
 #include "stdlib.h"
 #include "audio/include/player.h"
 #include <string.h>
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "audio/include/wav_decoder.h"
@@ -9,29 +10,27 @@
 #include <sys/stat.h>
 #include "audio/include/esp_board_init.h"
 #include <dirent.h>
-#include "audio/include/audio_file.h"
 
 #define CODEC_CHANNEL 2
 #define CODEC_SAMPLE_RATE 16000
+#define TAG    "player"
 
 void stream_in_task(void *arg)
 {
     player_handle_t *player = arg;
     unsigned char* buffer = malloc(player->frame_size * sizeof(unsigned char));
     void * wav_decoder = NULL;
-    int cur_file_num = 0;
-    printf("create stream in\n");
+    ESP_LOGE(TAG, "create stream in running.");
 
     int channels = CODEC_CHANNEL;
     int sample_rate = CODEC_SAMPLE_RATE;
     wav_decoder = wav_decoder_open(player->audio_file);
     if (wav_decoder == NULL) {
-        printf("can not find %s.\n", player->audio_file);
         return;
     } else {
         channels = wav_decoder_get_channel(wav_decoder);
         sample_rate = wav_decoder_get_sample_rate(wav_decoder);
-        printf("start to play %s, channels:%d, sample rate:%d \n", player->audio_file,
+        ESP_LOGE(TAG, "start to play %s, channels:%d, sample rate:%d", player->audio_file,
                 channels, sample_rate );
     }
 
@@ -44,9 +43,14 @@ void stream_in_task(void *arg)
                 memset(buffer + size, 0, player->frame_size - size); //清掉buffer无效数据区
                 wav_decoder_close(wav_decoder);
                 wav_decoder = NULL;
-                player->player_state = 4;
+                while(1){
+                    vTaskDelay(16 / portTICK_PERIOD_MS);
+                }
+                // player->player_state = 4;
             }
             xQueueSend(player->player_queue, buffer, portMAX_DELAY);
+            vTaskDelay(5 / portTICK_PERIOD_MS);
+            // ESP_LOGD(TAG, "stream in.");
             break;
         case 2: // pause or stop
             vTaskDelay(16 / portTICK_PERIOD_MS);
@@ -57,10 +61,13 @@ void stream_in_task(void *arg)
             break;
 
         case 4: // exit
+            vTaskDelay(2000 / portTICK_PERIOD_MS);
+            printf("audio file read end.\n");
             free(buffer);
             if (wav_decoder != NULL)
                 wav_decoder_close(wav_decoder);
-            return;
+            // return;
+            vTaskDelete(NULL);
 
         default: // exit
             vTaskDelay(16 / portTICK_PERIOD_MS);
@@ -73,7 +80,7 @@ void stream_out_task(void *arg)
     player_handle_t *player = arg;
     int16_t* buffer = malloc(player->frame_size * sizeof(unsigned char));
     int16_t* zero_buffer = calloc(player->frame_size, sizeof(unsigned char));
-    printf("create stream_out\n");
+    printf("stream_out is running.\n");
     int count = 0;
     while (1) {
         count++;
@@ -81,6 +88,7 @@ void stream_out_task(void *arg)
         case 1: // play
             xQueueReceive(player->player_queue, buffer, portMAX_DELAY);
             esp_audio_play(buffer, player->frame_size, portMAX_DELAY);
+            // ESP_LOGE(TAG, "stream out.");
             break;
 
         case 2: // pause or stop
@@ -93,8 +101,12 @@ void stream_out_task(void *arg)
             break;
 
         case 4: // exit
+            printf("play end.\n");
+            vTaskDelay(2000 / portTICK_PERIOD_MS);
             free(buffer);
-            return;
+            while(1){
+                 vTaskDelay(200 / portTICK_PERIOD_MS);
+            }
 
         default: // exit
             // i2s_zero_dma_buffer(0);
@@ -163,7 +175,7 @@ void *player_create(const char *file, int ringbuf_size, unsigned int core_num)
     player->audio_file = file;
 
     xTaskCreatePinnedToCore(&stream_in_task, "stream_in", 2 * 1024, (void*)player, 8, NULL, core_num);
-    // xTaskCreatePinnedToCore(&stream_out_task, "stream_out", 2 * 1024, (void*)player, 8, NULL, core_num);
+    xTaskCreatePinnedToCore(&stream_out_task, "stream_out", 2 * 1024, (void*)player, 8, NULL, core_num);
 
     return player;
 }

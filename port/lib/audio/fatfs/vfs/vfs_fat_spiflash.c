@@ -42,7 +42,7 @@ esp_err_t esp_vfs_fat_spiflash_mount(const char* partition_label)
 
     if(!fs){
         fs = ffs_memalloc(sizeof(FATFS));
-        ESP_LOGE(TAG, "FATFS size %d.", sizeof(FATFS));
+        // ESP_LOGE(TAG, "FATFS size %d.", sizeof(FATFS));
     }
 
     // Try to mount partition
@@ -53,7 +53,7 @@ esp_err_t esp_vfs_fat_spiflash_mount(const char* partition_label)
         result = ESP_FAIL;
         goto fail;
     }
-    ESP_LOGE(TAG, "fs_mount sucess.\n");
+    // ESP_LOGE(TAG, "fs_mount sucess.\n");
     return ESP_OK;
 
 fail:

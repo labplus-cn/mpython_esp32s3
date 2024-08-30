@@ -72,8 +72,8 @@
 #define GPIO_I2S_LRCK       (GPIO_NUM_12)
 #define GPIO_I2S_MCLK       (GPIO_NUM_0)
 #define GPIO_I2S_SCLK       (GPIO_NUM_27)
-#define GPIO_I2S_SDIN       (GPIO_NUM_26)
-#define GPIO_I2S_DOUT       (GPIO_NUM_25)
+#define GPIO_I2S_SDIN       (GPIO_NUM_25)
+#define GPIO_I2S_DOUT       (GPIO_NUM_26)
 
 // /**
 //  * @brief labplus_classroom_kit I2S GPIO defination
@@ -91,7 +91,7 @@
  * @brief player configurations
  *
  */
-#define PLAYER_VOLUME   (50)
+#define PLAYER_VOLUME   (90)
 
 /**
  * @brief ESP32-S3-HMI-DevKit power control IO
@@ -99,7 +99,7 @@
  * @note Some power control pins might not be listed yet
  * 
  */
-#define FUNC_PWR_CTRL       (1)
+#define FUNC_PWR_CTRL       (0)
 #define GPIO_PWR_CTRL       (GPIO_NUM_12)
 #define GPIO_PWR_ON_LEVEL   (1)
 
@@ -124,7 +124,7 @@
 
 #define I2S_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_chan) { \
         .clk_cfg  = I2S_STD_CLK_DEFAULT_CONFIG(16000), \
-        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(32, I2S_SLOT_MODE_STEREO), \
+        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(16, I2S_SLOT_MODE_STEREO), \
         .gpio_cfg = { \
             .mclk = GPIO_I2S_MCLK, \
             .bclk = GPIO_I2S_SCLK, \

@@ -62,20 +62,21 @@ static esp_codec_dev_handle_t play_dev = NULL;
 
 esp_err_t bsp_i2c_init(i2c_port_t i2c_num, uint32_t clk_speed)
 {
-    i2c_config_t i2c_cfg = {
-        .mode = I2C_MODE_MASTER,
-        .scl_io_num = GPIO_I2C_SCL,
-        .sda_io_num = GPIO_I2C_SDA,
-        .scl_pullup_en = GPIO_PULLUP_DISABLE,
-        .sda_pullup_en = GPIO_PULLUP_DISABLE,
-        .master.clk_speed = clk_speed,
-        .clk_flags = I2C_SCLK_SRC_FLAG_AWARE_DFS,
-    };
-    esp_err_t ret = i2c_param_config(i2c_num, &i2c_cfg);
-    if (ret != ESP_OK) {
-        return ESP_FAIL;
-    }
-    return i2c_driver_install(i2c_num, i2c_cfg.mode, 0, 0, 0);
+    // static i2c_config_t i2c_cfg = {
+    //     .mode = I2C_MODE_MASTER,
+    //     .scl_io_num = GPIO_I2C_SCL,
+    //     .sda_io_num = GPIO_I2C_SDA,
+    //     .scl_pullup_en = GPIO_PULLUP_DISABLE,
+    //     .sda_pullup_en = GPIO_PULLUP_DISABLE,
+    //     .master.clk_speed = 400000,
+    //     // .clk_flags = I2C_SCLK_SRC_FLAG_AWARE_DFS,
+    // };
+    // esp_err_t ret = i2c_param_config(i2c_num, &i2c_cfg);
+    // if (ret != ESP_OK) {
+    //     return ESP_FAIL;
+    // }
+    // return i2c_driver_install(i2c_num, i2c_cfg.mode, 0, 0, 0);
+    return ESP_OK;
 }
 
 esp_err_t bsp_codec_adc_init(int sample_rate)

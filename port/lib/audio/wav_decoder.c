@@ -31,7 +31,7 @@
 
 struct wav_decoder {
 	FATFS *fs;
-	FIL *wav;
+	FIL *file;
 	uint32_t data_length;
 
 	int format;
@@ -46,13 +46,13 @@ static uint32_t read_tag(struct wav_decoder* wr) {
 	uint32_t tag = 0;
 	uint8_t data;
 	unsigned int b;
-	fs_read (wr->wav, &data, 1, &b);
+	fs_read (wr->file, &data, 1, &b);
 	tag = (tag << 8) | data;
-	fs_read (wr->wav, &data, 1, &b);
+	fs_read (wr->file, &data, 1, &b);
 	tag = (tag << 8) | data;
-	fs_read (wr->wav, &data, 1, &b);
+	fs_read (wr->file, &data, 1, &b);
 	tag = (tag << 8) | data;
-	fs_read (wr->wav, &data, 1, &b);
+	fs_read (wr->file, &data, 1, &b);
 	tag = (tag << 8) | data;
 	return tag;
 }
@@ -61,13 +61,13 @@ static uint32_t read_int32(struct wav_decoder* wr) {
 	uint32_t value = 0;
 	uint8_t data;
 	unsigned int b;
-	fs_read (wr->wav, &data, 1, &b);
+	fs_read (wr->file, &data, 1, &b);
 	value |= data <<  0;
-	fs_read (wr->wav, &data, 1, &b);
+	fs_read (wr->file, &data, 1, &b);
 	value |= data <<  8;
-	fs_read (wr->wav, &data, 1, &b);
+	fs_read (wr->file, &data, 1, &b);
 	value |= data << 16;
-	fs_read (wr->wav, &data, 1, &b);
+	fs_read (wr->file, &data, 1, &b);
 	value |= data << 24;
 	return value;
 }
@@ -77,16 +77,15 @@ static uint16_t read_int16(struct wav_decoder* wr) {
 	unsigned int b;
 	
 	uint16_t value = 0;
-	fs_read (wr->wav, &data, 1, &b);
+	fs_read (wr->file, &data, 1, &b);
 	value |= data << 0;
-	fs_read (wr->wav, &data, 1, &b);
+	fs_read (wr->file, &data, 1, &b);
 	value |= data << 8;
 	return value;
 }
 
 void* wav_decoder_open(const char *filename) {
 	struct wav_decoder* wr = (struct wav_decoder*) malloc(sizeof(*wr));
-	long data_pos = 0;
 	memset(wr, 0, sizeof(*wr));
 
 	esp_vfs_fat_spiflash_mount("vfs");
@@ -95,67 +94,53 @@ void* wav_decoder_open(const char *filename) {
 		free(wr);
 		return NULL;
 	}
-	fs_open(wr->fs, wr->wav, filename, FA_READ);
-
-	while (1) {
-		uint32_t tag, tag2, length;
-		tag = read_tag(wr);
-		if (fs_eof(wr->wav))
-			break;
-		length = read_int32(wr);
-		if (tag != TAG('R', 'I', 'F', 'F') || length < 4) {
-			fs_lseek(wr->wav, length); // 到文件结束，在上面fs_eof()执行后，退出while
-			continue;
-		}
-		tag2 = read_tag(wr);
-		length -= 4;
-		if (tag2 != TAG('W', 'A', 'V', 'E')) {
-			fs_lseek(wr->wav, length);  // 到文件结束，在上面fs_eof()执行后，退出while
-			continue;
-		}
-		ESP_LOGE("TAG", "tag");
-		// RIFF chunk found, iterate through it
-		while (length >= 8) {
-			uint32_t subtag, sublength;
-			subtag = read_tag(wr);
-			if (fs_eof(wr->wav))
-				break;
-			sublength = read_int32(wr);
-			length -= 8;
-			if (length < sublength)
-				break;
-			if (subtag == TAG('f', 'm', 't', ' ')) {
-				if (sublength < 16) {
-					// Insufficient data for 'fmt '
-					break;
-				}
-				wr->format          = read_int16(wr);
-				wr->channels        = read_int16(wr);
-				wr->sample_rate     = read_int32(wr);
-				wr->byte_rate       = read_int32(wr);
-				wr->block_align     = read_int16(wr);
-				wr->bits_per_sample = read_int16(wr);
-			} else if (subtag == TAG('d', 'a', 't', 'a')) {
-				data_pos = fs_tell(wr->wav);
-				wr->data_length = sublength;
-				fs_lseek(wr->wav, sublength);
-			} else {
-				fs_lseek(wr->wav, sublength);
-			}
-			length -= sublength;
-		}
-		if (length > 0) {
-			// Bad chunk?
-			fs_lseek(wr->wav, length);
-		}
+	wr->file = (FIL*) malloc(sizeof(FIL));
+	if(fs_open(wr->fs, wr->file, filename, FA_READ) != FR_OK){
+		free(wr);
+		return NULL;
 	}
-	fs_lseek(wr->wav, data_pos);
+	// ESP_LOGE("TAG", "open result: %d\n", R);
+
+	uint32_t tag, tag2, length;
+	tag = read_tag(wr); // 4字节
+	length = read_int32(wr); // 4字节
+	if (tag != TAG('R', 'I', 'F', 'F') || length < 4) {
+		return NULL;	
+	}
+
+	tag2 = read_tag(wr);
+	if (tag2 != TAG('W', 'A', 'V', 'E')) { // 4字节
+		return NULL;
+	}
+
+	uint32_t subtag, sublength;
+	subtag = read_tag(wr);  // 4字节
+	sublength = read_int32(wr);
+	if (subtag != TAG('f', 'm', 't', ' ') || sublength < 16) {
+		return NULL;
+	}
+	wr->format          = read_int16(wr);
+	wr->channels        = read_int16(wr);
+	wr->sample_rate     = read_int32(wr);
+	wr->byte_rate       = read_int32(wr);
+	wr->block_align     = read_int16(wr);
+	wr->bits_per_sample = read_int16(wr);
+	// ESP_LOGE("TAG", "wav format: %d, channels: %d sample rate: %d, bits per sample: %d", wr->format, wr->channels, wr->sample_rate, wr->bits_per_sample);
+
+	subtag = read_tag(wr);  // 4字节
+	if (subtag != TAG('d', 'a', 't', 'a')) {
+		return NULL;
+	}
+	sublength = read_int32(wr); // 读完后，文件定位在data首址
+	wr->data_length = sublength;
+	ESP_LOGE("WAV", "data pos: %ld, data_len: %ld\n", fs_tell(wr->file), wr->data_length);
+
 	return wr;
 }
 
 void wav_decoder_close(void* obj) {
 	struct wav_decoder* wr = (struct wav_decoder*) obj;
-	fs_close(wr->wav);
+	fs_close(wr->file);
 	free(wr);
 }
 
@@ -179,10 +164,15 @@ int wav_decoder_run(void* obj, unsigned char* data, unsigned int length) {
 	unsigned int n;
 	if (wr->fs == NULL)
 		return -1;
-	if (length > wr->data_length)
-		length = wr->data_length;
-	fs_read(wr->wav, data, length, &n);
+
+	if(length >= wr->data_length){
+		fs_read(wr->file, data,  wr->data_length, &n);
+	}else{
+		fs_read(wr->file, data, length, &n);
+	}
 	wr->data_length -= length;
+	// ESP_LOGE("WAV", "data[0], %d, read len: %d\n", *data, n);
+
 	return n;
 }
 
