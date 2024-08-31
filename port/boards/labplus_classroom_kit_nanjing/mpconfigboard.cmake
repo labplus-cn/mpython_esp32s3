@@ -28,7 +28,7 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/lib/audio/fatfs/src/ffsystem.c
     ${MPY_PORT_DIR}/lib/audio/fatfs/src/ffunicode.c
     ${MPY_PORT_DIR}/lib/audio/fatfs/vfs/vfs_fat_spiflash.c
-    ${MPY_PORT_DIR}/lib/audio/recorder.c
+    # ${MPY_PORT_DIR}/lib/audio/recorder.c
     ${MPY_PORT_DIR}/lib/audio/esp_board_init.c
     ${MPY_PORT_DIR}/lib/audio/player.c
     ${MPY_PORT_DIR}/lib/audio/wav_decoder.c

@@ -53,7 +53,7 @@ typedef struct {
  */
 void diskio_register(BYTE pdrv, const diskio_impl_t* discio_impl);
 
-#define ffs_diskio_unregister(pdrv_) diskio_register(pdrv_, NULL)
+#define diskio_unregister(pdrv_) diskio_register(pdrv_, NULL)
 
 
 /**

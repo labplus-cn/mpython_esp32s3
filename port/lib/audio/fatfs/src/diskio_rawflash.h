@@ -28,6 +28,7 @@ extern "C" {
  * @param part_handle  pointer to raw flash partition.
  */
 esp_err_t diskio_register_raw_partition(unsigned char pdrv, const esp_partition_t* part_handle);
+void diskio_unregister_raw_partition(BYTE pdrv);
 unsigned char ffs_diskio_get_pdrv_raw(const esp_partition_t* part_handle);
 
 #ifdef __cplusplus

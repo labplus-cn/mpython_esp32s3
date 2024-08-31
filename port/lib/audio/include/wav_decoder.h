@@ -23,13 +23,31 @@
 extern "C" {
 #endif
 
-void* wav_decoder_open(const char *filename);
-void wav_decoder_close(void* obj);
+#include "audio/fatfs/src/ff.h"
+
+typedef struct wav_decoder {
+	FATFS *fs;
+	FIL *file;
+	uint32_t data_length;
+
+	int format;
+	int sample_rate;
+	int bits_per_sample;
+	int channels;
+	int byte_rate;
+	int block_align;
+} wav_decoder_t;
+
+void* wav_decoder_init(void);
+void wav_decoder_deinit(void* obj);
 int wav_decoder_get_header(void* obj, int* format, int* channels, int* sample_rate, int* bits_per_sample, unsigned int* data_length);
-int wav_decoder_run(void* obj, unsigned char* data, unsigned int length);
 int wav_decoder_get_sample_rate(void* obj);
 int wav_decoder_get_channel(void* obj);
 int wav_decoder_get_data_length(void* obj);
+
+esp_err_t wav_file_open(wav_decoder_t* wr, const char *filename);
+void wav_file_close(wav_decoder_t* wr);
+int wav_file_read(void* obj, unsigned char* data, unsigned int length);
 
 #ifdef __cplusplus
 }

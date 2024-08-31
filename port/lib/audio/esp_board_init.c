@@ -24,19 +24,44 @@
 
 static const char *TAG = "hardware";
 
-esp_err_t esp_board_init(uint32_t sample_rate, int channel_format, int bits_per_chan)
+esp_err_t esp_board_play_dev_create(uint32_t sample_rate, int channel_format, int bits_per_chan)
 {
-    return bsp_board_init(sample_rate, channel_format, bits_per_chan);
+    return bsp_codec_play_dev_create(0, sample_rate, channel_format, bits_per_chan);
 }
 
-esp_err_t esp_sdcard_init(char *mount_point, size_t max_files)
+esp_err_t esp_board_play_dev_delete(void)
 {
-    return bsp_sdcard_init(mount_point, max_files);
+    return bsp_codec_play_dev_delete();
 }
 
-esp_err_t esp_sdcard_deinit(char *mount_point)
+esp_err_t esp_board_record_dev_create(uint32_t sample_rate, int channel_format, int bits_per_chan)
 {
-    return bsp_sdcard_deinit(mount_point);
+    return bsp_codec_record_dev_create(0, sample_rate, channel_format, bits_per_chan);
+}
+
+esp_err_t esp_board_record_dev_delete(void)
+{
+    return bsp_codec_record_dev_delete();
+}
+
+esp_err_t esp_board_record_dev_open(uint32_t sample_rate, int channel_format, int bits_per_chan)
+{
+    return bsp_codec_record_dev_open(sample_rate, channel_format, bits_per_chan);
+}
+
+esp_err_t esp_board_record_dev_close(void)
+{
+    return bsp_codec_record_dev_close();
+}
+
+esp_err_t esp_board_play_dev_open(uint32_t sample_rate, int channel_format, int bits_per_chan)
+{
+    return bsp_codec_play_dev_open(sample_rate, channel_format, bits_per_chan);
+}
+
+esp_err_t esp_board_play_dev_close(void)
+{
+    return bsp_codec_play_dev_close();
 }
 
 esp_err_t esp_get_feed_data(bool is_get_raw_channel, int16_t *buffer, int buffer_len)

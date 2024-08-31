@@ -76,7 +76,7 @@ esp_err_t bsp_i2c_init(i2c_port_t i2c_num, uint32_t clk_speed)
     return i2c_driver_install(i2c_num, i2c_cfg.mode, 0, 0, 0);
 }
 
-esp_err_t bsp_codec_adc_init(int sample_rate)
+esp_err_t bsp_codec_record_dev_create(int sample_rate)
 {
     esp_err_t ret_val = ESP_OK;
 
@@ -121,7 +121,7 @@ esp_err_t bsp_codec_adc_init(int sample_rate)
     return ret_val;
 }
 
-esp_err_t bsp_codec_dac_init(int sample_rate, int channel_format, int bits_per_chan)
+esp_err_t bsp_codec_play_dev_create(int sample_rate, int channel_format, int bits_per_chan)
 {
     esp_err_t ret_val = ESP_OK;
 
@@ -166,7 +166,7 @@ esp_err_t bsp_codec_dac_init(int sample_rate, int channel_format, int bits_per_c
     return ret_val;
 }
 
-static esp_err_t bsp_codec_adc_deinit()
+static esp_err_t bsp_codec_record_dev_delete()
 {
     esp_err_t ret_val = ESP_OK;
 
@@ -197,7 +197,7 @@ static esp_err_t bsp_codec_adc_deinit()
     return ret_val;
 }
 
-static esp_err_t bsp_codec_dac_deinit()
+static esp_err_t bsp_codec_play_dev_delete()
 {
     esp_err_t ret_val = ESP_OK;
 
@@ -365,8 +365,8 @@ static esp_err_t bsp_codec_init(int adc_sample_rate, int dac_sample_rate, int da
 {
     esp_err_t ret_val = ESP_OK;
 
-    ret_val |= bsp_codec_adc_init(adc_sample_rate);
-    ret_val |= bsp_codec_dac_init(dac_sample_rate, dac_channel_format, dac_bits_per_chan);
+    ret_val |= bsp_codec_record_dev_create(adc_sample_rate);
+    ret_val |= bsp_codec_play_dev_create(dac_sample_rate, dac_channel_format, dac_bits_per_chan);
     return ret_val;
 }
 
@@ -374,8 +374,8 @@ static esp_err_t bsp_codec_deinit()
 {
     esp_err_t ret_val = ESP_OK;
 
-    ret_val |= bsp_codec_adc_deinit();
-    ret_val |= bsp_codec_dac_deinit();
+    ret_val |= bsp_codec_record_dev_delete();
+    ret_val |= bsp_codec_play_dev_delete();
     return ret_val;
 }
 

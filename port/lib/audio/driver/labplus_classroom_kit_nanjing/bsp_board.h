@@ -105,9 +105,9 @@
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 
-#define I2S0_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_chan) { \
+#define I2S0_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_sample) { \
         .clk_cfg  = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate), \
-        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(bits_per_chan, channel_fmt), \
+        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(bits_per_sample, channel_fmt), \
         .gpio_cfg = { \
             .mclk = GPIO_I2S0_MCLK, \
             .bclk = GPIO_I2S0_SCLK, \
@@ -122,7 +122,7 @@
         }, \
     }
 
-#define I2S_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_chan) { \
+#define I2S_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_sample) { \
         .clk_cfg  = I2S_STD_CLK_DEFAULT_CONFIG(16000), \
         .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(16, I2S_SLOT_MODE_STEREO), \
         .gpio_cfg = { \
@@ -136,7 +136,7 @@
 
 #else
 
-#define I2S0_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_chan) { \
+#define I2S0_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_sample) { \
     .mode                   = I2S_MODE_MASTER | I2S_MODE_TX, \
     .sample_rate            = sample_rate, \
     .bits_per_sample        = I2S_BITS_PER_SAMPLE_16BIT, \
@@ -149,10 +149,10 @@
     .tx_desc_auto_clear     = true, \
     .fixed_mclk             = 0, \
     .mclk_multiple          = I2S_MCLK_MULTIPLE_DEFAULT, \
-    .bits_per_chan          = bits_per_chan, \
+    .bits_per_sample          = bits_per_sample, \
 }
 
-#define I2S_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_chan) { \
+#define I2S_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_sample) { \
     .mode                   = I2S_MODE_MASTER | I2S_MODE_RX, \
     .sample_rate            = 16000, \
     .bits_per_sample        = I2S_BITS_PER_SAMPLE_32BIT, \
@@ -165,7 +165,7 @@
     .tx_desc_auto_clear     = true, \
     .fixed_mclk             = 0, \
     .mclk_multiple          = I2S_MCLK_MULTIPLE_DEFAULT, \
-    .bits_per_chan          = I2S_BITS_PER_CHAN_32BIT, \
+    .bits_per_sample          = I2S_BITS_PER_CHAN_32BIT, \
 }
 
 #endif

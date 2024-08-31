@@ -64,7 +64,7 @@ void diskio_register(BYTE pdrv, const diskio_impl_t* discio_impl)
 {
     assert(pdrv < FF_VOLUMES);
 
-    if (s_impls[pdrv]) {
+    if (s_impls[pdrv]) {   //原来已有磁盘IO结构体指针，清除掉，并释放资源
         diskio_impl_t* im = s_impls[pdrv];
         s_impls[pdrv] = NULL;
         free(im);
@@ -74,6 +74,7 @@ void diskio_register(BYTE pdrv, const diskio_impl_t* discio_impl)
         return;
     }
 
+    //传入的discio_impl是个局部变量，所以做以下操作。
     diskio_impl_t * impl = (diskio_impl_t *)malloc(sizeof(diskio_impl_t));
     assert(impl != NULL);
     memcpy(impl, discio_impl, sizeof(diskio_impl_t));

@@ -34,35 +34,17 @@ extern "C" {
  *    - ESP_OK: Success
  *    - Others: Fail
  */
-esp_err_t esp_board_init(uint32_t sample_rate, int channel_format, int bits_per_chan);
-
-/**
- * @brief Init SD crad
- * 
- * @param mount_point Path where partition should be registered (e.g. "/sdcard")
- * @param max_files Maximum number of files which can be open at the same time
- * @return
- *    - ESP_OK                  Success
- *    - ESP_ERR_INVALID_STATE   If esp_vfs_fat_register was already called
- *    - ESP_ERR_NOT_SUPPORTED   If dev board not has SDMMC/SDSPI
- *    - ESP_ERR_NO_MEM          If not enough memory or too many VFSes already registered
- *    - Others                  Fail
- */
-esp_err_t esp_sdcard_init(char *mount_point, size_t max_files);
-
-/**
- * @brief Deinit SD card
- * 
- * @param mount_point Path where partition was registered (e.g. "/sdcard")
- * @return 
- *    - ESP_OK: Success
- *    - Others: Fail
- */
-esp_err_t esp_sdcard_deinit(char *mount_point);
+esp_err_t esp_board_play_dev_create(uint32_t sample_rate, int channel_format, int bits_per_chan);
+esp_err_t esp_board_play_dev_delete(void);
+esp_err_t esp_board_play_dev_open(uint32_t sample_rate, int channel_format, int bits_per_sample);
+esp_err_t esp_board_play_dev_close(void);
+esp_err_t esp_board_record_dev_create(uint32_t sample_rate, int channel_format, int bits_per_chan);
+esp_err_t esp_board_record_dev_delete(void);
+esp_err_t esp_board_record_dev_open(uint32_t sample_rate, int channel_format, int bits_per_chan);
+esp_err_t esp_board_record_dev_close(void);
 
 
 esp_err_t get_i2s_data(char *buffer, int buffer_len);
-
 esp_err_t esp_audio_play(const int16_t* data, int length, TickType_t ticks_to_wait);
 
 /**

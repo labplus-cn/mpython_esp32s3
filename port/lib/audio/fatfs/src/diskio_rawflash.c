@@ -91,6 +91,12 @@ esp_err_t diskio_register_raw_partition(BYTE pdrv, const esp_partition_t* part_h
 
 }
 
+void diskio_unregister_raw_partition(BYTE pdrv)
+{
+    ffs_raw_handles[pdrv] = NULL;
+    diskio_unregister(pdrv);
+}
+
 
 BYTE ffs_diskio_get_pdrv_raw(const esp_partition_t* part_handle)
 {

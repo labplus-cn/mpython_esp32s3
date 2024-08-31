@@ -26,7 +26,7 @@
 #include "extmod/vfs.h"
 
 #include "freertos/FreeRTOS.h"
-// #include "freertos/task.h"
+#include "freertos/task.h"
 // #include "freertos/queue.h"
 // #include "freertos/timers.h"
 
@@ -43,7 +43,7 @@ static const char *TAG = "audio";
 /* ---------------player ------------------------*/
 static mp_obj_t audio_player_init(size_t n_args, const mp_obj_t *args)
 {
-    esp_board_init(16000, 2, 16);
+    // esp_board_init(16000, 2, 16);
     return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_player_init_obj, 0, 1, audio_player_init);
@@ -59,8 +59,9 @@ static mp_obj_t audio_play(mp_obj_t url)
 {
    const char *_url = mp_obj_str_get_str(url);
 
-   player_handle_t *player = player_create(_url, 4096, 1);
-   player_play(player, NULL);
+   player_handle_t *player = player_create(4096, 0);
+   vTaskDelay(10 / portTICK_PERIOD_MS);
+   player_play(player, _url);
     
     return mp_const_none;
 }
@@ -114,7 +115,7 @@ static MP_DEFINE_CONST_FUN_OBJ_0(audio_get_status_obj, audio_get_status);
 /* ------------------------recorder--------------------------*/
 static mp_obj_t audio_recorder_init(size_t n_args, const mp_obj_t *args)
 {
-    esp_board_init(16000, 2, 32);
+    // esp_board_init(16000, 2, 32);
     return mp_const_none; 
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_recorder_init_obj, 0, 1, audio_recorder_init);
@@ -137,7 +138,7 @@ static mp_obj_t audio_record(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    recorder_recorde(mp_obj_str_get_str(args[ARG_file_name].u_obj), args[ARG_record_time].u_int); 
+    // recorder_recorde(mp_obj_str_get_str(args[ARG_file_name].u_obj), args[ARG_record_time].u_int); 
 
     return mp_const_none;
 }

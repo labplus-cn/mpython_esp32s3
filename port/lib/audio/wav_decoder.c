@@ -18,7 +18,6 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
-#include "audio/include/wav_decoder.h"
 #include "freertos/task.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,23 +25,11 @@
 #include <stdint.h>
 #include "audio/fatfs/src/ff.h"
 #include "audio/fatfs/vfs/esp_vfs_fat.h"
+#include "audio/include/wav_decoder.h"
 
 #define TAG(a, b, c, d) (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
 
-struct wav_decoder {
-	FATFS *fs;
-	FIL *file;
-	uint32_t data_length;
-
-	int format;
-	int sample_rate;
-	int bits_per_sample;
-	int channels;
-	int byte_rate;
-	int block_align;
-};
-
-static uint32_t read_tag(struct wav_decoder* wr) {
+static uint32_t read_tag(wav_decoder_t* wr) {
 	uint32_t tag = 0;
 	uint8_t data;
 	unsigned int b;
@@ -57,7 +44,7 @@ static uint32_t read_tag(struct wav_decoder* wr) {
 	return tag;
 }
 
-static uint32_t read_int32(struct wav_decoder* wr) {
+static uint32_t read_int32(wav_decoder_t* wr) {
 	uint32_t value = 0;
 	uint8_t data;
 	unsigned int b;
@@ -72,7 +59,7 @@ static uint32_t read_int32(struct wav_decoder* wr) {
 	return value;
 }
 
-static uint16_t read_int16(struct wav_decoder* wr) {
+static uint16_t read_int16(wav_decoder_t* wr) {
 	uint8_t data;
 	unsigned int b;
 	
@@ -84,8 +71,8 @@ static uint16_t read_int16(struct wav_decoder* wr) {
 	return value;
 }
 
-void* wav_decoder_open(const char *filename) {
-	struct wav_decoder* wr = (struct wav_decoder*) malloc(sizeof(*wr));
+void* wav_decoder_init(void) {
+	wav_decoder_t* wr = (wav_decoder_t*) malloc(sizeof(*wr));
 	memset(wr, 0, sizeof(*wr));
 
 	esp_vfs_fat_spiflash_mount("vfs");
@@ -94,10 +81,24 @@ void* wav_decoder_open(const char *filename) {
 		free(wr);
 		return NULL;
 	}
+
+	return wr;
+}
+
+void wav_decoder_deinit(void* obj) {
+	wav_decoder_t* wr = (wav_decoder_t*) obj;
+	esp_vfs_fat_spiflash_unmount("vfs");
+	free(wr);
+}
+
+esp_err_t wav_file_open(wav_decoder_t* wr, const char *filename)
+{
+	if(!wr){
+		return ESP_ERR_INVALID_ARG;
+	}
 	wr->file = (FIL*) malloc(sizeof(FIL));
 	if(fs_open(wr->fs, wr->file, filename, FA_READ) != FR_OK){
-		free(wr);
-		return NULL;
+		return ESP_ERR_INVALID_ARG;
 	}
 	// ESP_LOGE("TAG", "open result: %d\n", R);
 
@@ -105,19 +106,19 @@ void* wav_decoder_open(const char *filename) {
 	tag = read_tag(wr); // 4字节
 	length = read_int32(wr); // 4字节
 	if (tag != TAG('R', 'I', 'F', 'F') || length < 4) {
-		return NULL;	
+		return ESP_ERR_INVALID_ARG;	
 	}
 
 	tag2 = read_tag(wr);
 	if (tag2 != TAG('W', 'A', 'V', 'E')) { // 4字节
-		return NULL;
+		return ESP_ERR_INVALID_ARG;
 	}
 
 	uint32_t subtag, sublength;
 	subtag = read_tag(wr);  // 4字节
 	sublength = read_int32(wr);
 	if (subtag != TAG('f', 'm', 't', ' ') || sublength < 16) {
-		return NULL;
+		return ESP_ERR_INVALID_ARG;
 	}
 	wr->format          = read_int16(wr);
 	wr->channels        = read_int16(wr);
@@ -129,23 +130,25 @@ void* wav_decoder_open(const char *filename) {
 
 	subtag = read_tag(wr);  // 4字节
 	if (subtag != TAG('d', 'a', 't', 'a')) {
-		return NULL;
+		return ESP_ERR_INVALID_ARG;
 	}
 	sublength = read_int32(wr); // 读完后，文件定位在data首址
 	wr->data_length = sublength;
 	ESP_LOGE("WAV", "data pos: %ld, data_len: %ld\n", fs_tell(wr->file), wr->data_length);
 
-	return wr;
+	return ESP_OK;
 }
 
-void wav_decoder_close(void* obj) {
-	struct wav_decoder* wr = (struct wav_decoder*) obj;
-	fs_close(wr->file);
-	free(wr);
+void wav_file_close(wav_decoder_t* wr)
+{
+	if(wr->file){
+		fs_close(wr->file);
+		free(wr->file);
+	}
 }
 
 int wav_decoder_get_header(void* obj, int* format, int* channels, int* sample_rate, int* bits_per_sample, unsigned int* data_length) {
-	struct wav_decoder* wr = (struct wav_decoder*) obj;
+	wav_decoder_t* wr = (wav_decoder_t*) obj;
 	if (format)
 		*format = wr->format;
 	if (channels)
@@ -159,8 +162,8 @@ int wav_decoder_get_header(void* obj, int* format, int* channels, int* sample_ra
 	return wr->format && wr->sample_rate;
 }
 
-int wav_decoder_run(void* obj, unsigned char* data, unsigned int length) {
-	struct wav_decoder* wr = (struct wav_decoder*) obj;
+int wav_file_read(void* obj, unsigned char* data, unsigned int length) {
+	wav_decoder_t* wr = (wav_decoder_t*) obj;
 	unsigned int n;
 	if (wr->fs == NULL)
 		return -1;
@@ -170,26 +173,27 @@ int wav_decoder_run(void* obj, unsigned char* data, unsigned int length) {
 	}else{
 		fs_read(wr->file, data, length, &n);
 	}
-	wr->data_length -= length;
-	// ESP_LOGE("WAV", "data[0], %d, read len: %d\n", *data, n);
+	wr->data_length -= n;
+
+	ESP_LOGE("WAV", "data[0], %d, read len: %d, file_pos: %ld, read len: %d, data_len: %ld\n", *data, n, fs_tell(wr->file), length, wr->data_length);
 
 	return n;
 }
 
 int wav_decoder_get_channel(void* obj) {
 
-	struct wav_decoder* wr = (struct wav_decoder*) obj;
+	wav_decoder_t* wr = (wav_decoder_t*) obj;
 	return wr->channels;
 }
 
 int wav_decoder_get_sample_rate(void* obj) {
 
-	struct wav_decoder* wr = (struct wav_decoder*) obj;
+	wav_decoder_t* wr = (wav_decoder_t*) obj;
 	return wr->sample_rate;
 }
 
 int wav_decoder_get_data_length(void* obj) {
 
-	struct wav_decoder* wr = (struct wav_decoder*) obj;
+	wav_decoder_t* wr = (wav_decoder_t*) obj;
 	return wr->data_length;
 }

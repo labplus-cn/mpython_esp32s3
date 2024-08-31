@@ -19,38 +19,40 @@ void stream_in_task(void *arg)
 {
     player_handle_t *player = arg;
     unsigned char* buffer = malloc(player->frame_size * sizeof(unsigned char));
-    void * wav_decoder = NULL;
+    wav_decoder_t* wav_decoder = NULL;
     ESP_LOGE(TAG, "create stream in running.");
 
-    int channels = CODEC_CHANNEL;
-    int sample_rate = CODEC_SAMPLE_RATE;
-    wav_decoder = wav_decoder_open(player->audio_file);
+    // int channels = CODEC_CHANNEL;
+    // int sample_rate = CODEC_SAMPLE_RATE;
+    wav_decoder = wav_decoder_init();
     if (wav_decoder == NULL) {
         return;
     } else {
-        channels = wav_decoder_get_channel(wav_decoder);
-        sample_rate = wav_decoder_get_sample_rate(wav_decoder);
-        ESP_LOGE(TAG, "start to play %s, channels:%d, sample rate:%d", player->audio_file,
-                channels, sample_rate );
+        player->wav_codec = wav_decoder;
+        // channels = wav_decoder_get_channel(wav_decoder);
+        // sample_rate = wav_decoder_get_sample_rate(wav_decoder);
+        // ESP_LOGE(TAG, "start to play %s, channels:%d, sample rate:%d\n", player->audio_file,
+        //         channels, sample_rate );
     }
+   
+    esp_board_play_dev_create(16000, 2, 32);
 
     while (1) {
         switch (player->player_state) {
         case 1: // play
-            int size = wav_decoder_run(wav_decoder, buffer, player->frame_size);
-
+            int size = wav_file_read(player->wav_codec, buffer, player->frame_size);
+            
             if (size < player->frame_size) { //要结束了
-                memset(buffer + size, 0, player->frame_size - size); //清掉buffer无效数据区
-                wav_decoder_close(wav_decoder);
-                wav_decoder = NULL;
+                memset(buffer + size, 0, player->frame_size - size); //清掉buffer无效数据区,避免杂音
+                wav_decoder_deinit(player->wav_codec);
+                player->wav_codec = NULL;
                 while(1){
                     vTaskDelay(16 / portTICK_PERIOD_MS);
                 }
                 // player->player_state = 4;
             }
             xQueueSend(player->player_queue, buffer, portMAX_DELAY);
-            vTaskDelay(5 / portTICK_PERIOD_MS);
-            // ESP_LOGD(TAG, "stream in.");
+            // vTaskDelay(5 / portTICK_PERIOD_MS);
             break;
         case 2: // pause or stop
             vTaskDelay(16 / portTICK_PERIOD_MS);
@@ -62,14 +64,18 @@ void stream_in_task(void *arg)
 
         case 4: // exit
             vTaskDelay(2000 / portTICK_PERIOD_MS);
-            printf("audio file read end.\n");
             free(buffer);
             if (wav_decoder != NULL)
-                wav_decoder_close(wav_decoder);
+                wav_decoder_deinit(wav_decoder);
             // return;
             vTaskDelete(NULL);
+            break;
+        case 5: //stop
+            vTaskDelay(16 / portTICK_PERIOD_MS);
+            break;
 
         default: // exit
+            ESP_LOGE("TAG", "IDLE");
             vTaskDelay(16 / portTICK_PERIOD_MS);
         }
     }
@@ -80,7 +86,7 @@ void stream_out_task(void *arg)
     player_handle_t *player = arg;
     int16_t* buffer = malloc(player->frame_size * sizeof(unsigned char));
     int16_t* zero_buffer = calloc(player->frame_size, sizeof(unsigned char));
-    printf("stream_out is running.\n");
+    ESP_LOGE(TAG, "stream_out is running.\n");
     int count = 0;
     while (1) {
         count++;
@@ -88,14 +94,15 @@ void stream_out_task(void *arg)
         case 1: // play
             xQueueReceive(player->player_queue, buffer, portMAX_DELAY);
             esp_audio_play(buffer, player->frame_size, portMAX_DELAY);
-            // ESP_LOGE(TAG, "stream out.");
+            ESP_LOGE(TAG, "stream out.");
+            // vTaskDelay(16 / portTICK_PERIOD_MS);
             break;
 
         case 2: // pause or stop
             esp_audio_play(zero_buffer, player->frame_size, portMAX_DELAY);
             break;
 
-        case 3: // continue
+        case 3: // resume
             player->player_state = 1;
             // vTaskDelay(16 / portTICK_PERIOD_MS);
             break;
@@ -107,6 +114,9 @@ void stream_out_task(void *arg)
             while(1){
                  vTaskDelay(200 / portTICK_PERIOD_MS);
             }
+        case 5: //stop
+            vTaskDelay(16 / portTICK_PERIOD_MS);
+            break;
 
         default: // exit
             // i2s_zero_dma_buffer(0);
@@ -151,7 +161,7 @@ int file_list_scan(void *handle, const char *path)
     return player->file_num;
 }
 
-void *player_create(const char *file, int ringbuf_size, unsigned int core_num)
+void *player_create(int ringbuf_size, unsigned int core_num)
 {
     if (ringbuf_size < 1024)
         ringbuf_size = 1024;
@@ -172,7 +182,6 @@ void *player_create(const char *file, int ringbuf_size, unsigned int core_num)
     // player->file_list = malloc(sizeof(char *)*player->max_file_num);
     // for (int i = 0; i < player->max_file_num; i++)
     //     player->file_list[i] = calloc(FATFS_PATH_LENGTH_MAX, sizeof(char));
-    player->audio_file = file;
 
     xTaskCreatePinnedToCore(&stream_in_task, "stream_in", 2 * 1024, (void*)player, 8, NULL, core_num);
     xTaskCreatePinnedToCore(&stream_out_task, "stream_out", 2 * 1024, (void*)player, 8, NULL, core_num);
@@ -180,15 +189,17 @@ void *player_create(const char *file, int ringbuf_size, unsigned int core_num)
     return player;
 }
 
-void player_play(void *handle, const char *path)
+void player_play(void *handle, const char *file)
 {
     player_handle_t *player = handle;
-    //create file list
-
-    // file_list_scan(player, path);
-    // for (int i=0; i<player->file_num; i++)
-    //  printf("%s\n", player->file_list[i]);
-
+    if(player->player_state == 1 || player->player_state == 2)
+    if(player->audio_file){
+        wav_file_close(player->wav_codec);
+        esp_board_play_dev_close();
+    }
+    player->audio_file = file;
+    wav_file_open(player->wav_codec, file);
+    esp_board_play_dev_open(player->wav_codec->sample_rate, player->wav_codec->channels, player->wav_codec->bits_per_sample);
     //set player state
     player->player_state = 1;
 }

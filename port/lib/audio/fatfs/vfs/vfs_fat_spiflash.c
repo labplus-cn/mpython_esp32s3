@@ -57,7 +57,7 @@ esp_err_t esp_vfs_fat_spiflash_mount(const char* partition_label)
     return ESP_OK;
 
 fail:
-    ffs_diskio_unregister(pdrv);
+    diskio_unregister_raw_partition(pdrv);
     return result;
 }
 
@@ -77,12 +77,12 @@ esp_err_t esp_vfs_fat_spiflash_unmount(const char* partition_label)
     }
 
     // char drv[3] = {(char)('0' + pdrv), ':', 0};
-    fs_mount(fs);
-    ffs_diskio_unregister(pdrv);
+    fs_umount(fs);
     if(fs){
         ffs_memfree(fs);
     }
 
+    diskio_unregister_raw_partition(pdrv);
     return ESP_OK;
 }
 
