@@ -89,6 +89,7 @@ static esp_err_t bsp_i2s_init(uint32_t sample_rate, int channel_format, int bits
     ret_val |= i2s_channel_enable(tx_handle);
     ret_val |= i2s_channel_enable(rx_handle);
     ESP_LOGE(TAG, "I2S rx init end.");
+#endif
 
     return ESP_OK;
 }
@@ -365,7 +366,7 @@ esp_err_t bsp_codec_play_dev_create(uint32_t sample_rate, int channel_format, in
     es8388_codec_cfg_t es8388_cfg = {
         .codec_mode = ESP_CODEC_DEV_WORK_MODE_DAC,
         .ctrl_if = play_ctrl_if,
-        .gpio_if = play_gpio_if,
+        // .gpio_if = play_gpio_if,
     };
     play_codec_if = es8388_codec_new(&es8388_cfg);
     ESP_LOGE(TAG, "es8388 recor_codec_if create.");

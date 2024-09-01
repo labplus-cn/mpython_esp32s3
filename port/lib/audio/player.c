@@ -62,7 +62,7 @@ void stream_in_task(void *arg)
                 // player->player_state = 4;
             }
             xQueueSend(player->player_queue, buffer, portMAX_DELAY);
-            vTaskDelay(5 / portTICK_PERIOD_MS);
+            vTaskDelay(1 / portTICK_PERIOD_MS);
             break;
         case 2: // pause or stop
             vTaskDelay(16 / portTICK_PERIOD_MS);
