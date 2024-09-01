@@ -100,7 +100,7 @@
  * 
  */
 #define FUNC_PWR_CTRL       (0)
-#define GPIO_PWR_CTRL       (GPIO_NUM_12)
+#define GPIO_PWR_CTRL       (-1)
 #define GPIO_PWR_ON_LEVEL   (1)
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
@@ -124,7 +124,7 @@
 
 #define I2S_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_sample) { \
         .clk_cfg  = I2S_STD_CLK_DEFAULT_CONFIG(16000), \
-        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(16, I2S_SLOT_MODE_STEREO), \
+        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(32, I2S_SLOT_MODE_STEREO), \
         .gpio_cfg = { \
             .mclk = GPIO_I2S_MCLK, \
             .bclk = GPIO_I2S_SCLK, \

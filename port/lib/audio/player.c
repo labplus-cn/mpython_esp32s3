@@ -15,16 +15,19 @@
 #define CODEC_SAMPLE_RATE 16000
 #define TAG    "player"
 
+player_handle_t *player = NULL;
+
 void stream_in_task(void *arg)
 {
     player_handle_t *player = arg;
     unsigned char* buffer = malloc(player->frame_size * sizeof(unsigned char));
     wav_decoder_t* wav_decoder = NULL;
     ESP_LOGE(TAG, "create stream in running.");
+    static bool playdev_is_open = false;
 
     // int channels = CODEC_CHANNEL;
     // int sample_rate = CODEC_SAMPLE_RATE;
-    wav_decoder = wav_decoder_init();
+    wav_decoder = wav_decoder_init(player->audio_file);
     if (wav_decoder == NULL) {
         return;
     } else {
@@ -34,25 +37,32 @@ void stream_in_task(void *arg)
         // ESP_LOGE(TAG, "start to play %s, channels:%d, sample rate:%d\n", player->audio_file,
         //         channels, sample_rate );
     }
-   
-    esp_board_play_dev_create(16000, 2, 32);
 
     while (1) {
         switch (player->player_state) {
         case 1: // play
-            int size = wav_file_read(player->wav_codec, buffer, player->frame_size);
+            if(!playdev_is_open){
+                // esp_board_play_dev_create(16000, 2, 32);
+                wav_file_open(wav_decoder, player->audio_file);
+                // esp_board_record_dev_open(wav_decoder->sample_rate, wav_decoder->channels, wav_decoder->bits_per_sample);
+                // esp_board_play_dev_open(wav_decoder->sample_rate, wav_decoder->channels, wav_decoder->bits_per_sample);
+                playdev_is_open = true;
+                ESP_LOGE("TAG", "begin play.");
+            }
+            int size = wav_file_read(wav_decoder, buffer, player->frame_size);
             
             if (size < player->frame_size) { //要结束了
                 memset(buffer + size, 0, player->frame_size - size); //清掉buffer无效数据区,避免杂音
-                wav_decoder_deinit(player->wav_codec);
-                player->wav_codec = NULL;
+                wav_decoder_deinit(wav_decoder);
+                wav_decoder = NULL; //?释放
+                ESP_LOGE("TAG", "IDLE");
                 while(1){
                     vTaskDelay(16 / portTICK_PERIOD_MS);
                 }
                 // player->player_state = 4;
             }
             xQueueSend(player->player_queue, buffer, portMAX_DELAY);
-            // vTaskDelay(5 / portTICK_PERIOD_MS);
+            vTaskDelay(5 / portTICK_PERIOD_MS);
             break;
         case 2: // pause or stop
             vTaskDelay(16 / portTICK_PERIOD_MS);
@@ -75,8 +85,7 @@ void stream_in_task(void *arg)
             break;
 
         default: // exit
-            ESP_LOGE("TAG", "IDLE");
-            vTaskDelay(16 / portTICK_PERIOD_MS);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
         }
     }
 }
@@ -94,11 +103,11 @@ void stream_out_task(void *arg)
         case 1: // play
             xQueueReceive(player->player_queue, buffer, portMAX_DELAY);
             esp_audio_play(buffer, player->frame_size, portMAX_DELAY);
-            ESP_LOGE(TAG, "stream out.");
+            // ESP_LOGE("WAV", "file_pos: %ld, data_len: %ld\n", fs_tell(player->wav_codec->file), player->wav_codec->data_length);
             // vTaskDelay(16 / portTICK_PERIOD_MS);
             break;
 
-        case 2: // pause or stop
+        case 2: // pause
             esp_audio_play(zero_buffer, player->frame_size, portMAX_DELAY);
             break;
 
@@ -120,7 +129,7 @@ void stream_out_task(void *arg)
 
         default: // exit
             // i2s_zero_dma_buffer(0);
-            vTaskDelay(16 / portTICK_PERIOD_MS);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
 
         }
     }
@@ -161,7 +170,7 @@ int file_list_scan(void *handle, const char *path)
     return player->file_num;
 }
 
-void *player_create(int ringbuf_size, unsigned int core_num)
+void player_create(int ringbuf_size, unsigned int core_num)
 {
     if (ringbuf_size < 1024)
         ringbuf_size = 1024;
@@ -171,7 +180,7 @@ void *player_create(int ringbuf_size, unsigned int core_num)
     if (core_num > 1)
         core_num = 1;
 
-    player_handle_t *player = malloc(sizeof(player_handle_t));
+    player = malloc(sizeof(player_handle_t));
 
     player->frame_size = 1024;
     player->rb_size = ringbuf_size;
@@ -179,14 +188,9 @@ void *player_create(int ringbuf_size, unsigned int core_num)
     player->player_state = 0;
     player->file_num = 0;
     player->max_file_num = 10;
-    // player->file_list = malloc(sizeof(char *)*player->max_file_num);
-    // for (int i = 0; i < player->max_file_num; i++)
-    //     player->file_list[i] = calloc(FATFS_PATH_LENGTH_MAX, sizeof(char));
 
     xTaskCreatePinnedToCore(&stream_in_task, "stream_in", 2 * 1024, (void*)player, 8, NULL, core_num);
     xTaskCreatePinnedToCore(&stream_out_task, "stream_out", 2 * 1024, (void*)player, 8, NULL, core_num);
-
-    return player;
 }
 
 void player_play(void *handle, const char *file)
@@ -195,12 +199,13 @@ void player_play(void *handle, const char *file)
     if(player->player_state == 1 || player->player_state == 2)
     if(player->audio_file){
         wav_file_close(player->wav_codec);
-        esp_board_play_dev_close();
+        // esp_board_play_dev_close();
     }
-    player->audio_file = file;
-    wav_file_open(player->wav_codec, file);
-    esp_board_play_dev_open(player->wav_codec->sample_rate, player->wav_codec->channels, player->wav_codec->bits_per_sample);
+    // player->audio_file = file;
+    // wav_file_open(player->wav_codec, file);
+    // esp_board_play_dev_open(player->wav_codec->sample_rate, player->wav_codec->channels, player->wav_codec->bits_per_sample);
     //set player state
+    player->audio_file = file;
     player->player_state = 1;
 }
 

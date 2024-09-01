@@ -71,7 +71,7 @@ static uint16_t read_int16(wav_decoder_t* wr) {
 	return value;
 }
 
-void* wav_decoder_init(void) {
+void* wav_decoder_init(const char* filename) {
 	wav_decoder_t* wr = (wav_decoder_t*) malloc(sizeof(*wr));
 	memset(wr, 0, sizeof(*wr));
 
@@ -82,6 +82,46 @@ void* wav_decoder_init(void) {
 		return NULL;
 	}
 
+	// wr->file = (FIL*) malloc(sizeof(FIL));
+	// if(fs_open(wr->fs, wr->file, filename, FA_READ) != FR_OK){
+	// 	return ESP_ERR_INVALID_ARG;
+	// }
+	// // ESP_LOGE("TAG", "open result: %d\n", R);
+
+	// uint32_t tag, tag2, length;
+	// tag = read_tag(wr); // 4字节
+	// length = read_int32(wr); // 4字节
+	// if (tag != TAG('R', 'I', 'F', 'F') || length < 4) {
+	// 	return ESP_ERR_INVALID_ARG;	
+	// }
+
+	// tag2 = read_tag(wr);
+	// if (tag2 != TAG('W', 'A', 'V', 'E')) { // 4字节
+	// 	return ESP_ERR_INVALID_ARG;
+	// }
+
+	// uint32_t subtag, sublength;
+	// subtag = read_tag(wr);  // 4字节
+	// sublength = read_int32(wr);
+	// if (subtag != TAG('f', 'm', 't', ' ') || sublength < 16) {
+	// 	return ESP_ERR_INVALID_ARG;
+	// }
+	// wr->format          = read_int16(wr);
+	// wr->channels        = read_int16(wr);
+	// wr->sample_rate     = read_int32(wr);
+	// wr->byte_rate       = read_int32(wr);
+	// wr->block_align     = read_int16(wr);
+	// wr->bits_per_sample = read_int16(wr);
+	// // ESP_LOGE("TAG", "wav format: %d, channels: %d sample rate: %d, bits per sample: %d", wr->format, wr->channels, wr->sample_rate, wr->bits_per_sample);
+
+	// subtag = read_tag(wr);  // 4字节
+	// if (subtag != TAG('d', 'a', 't', 'a')) {
+	// 	return ESP_ERR_INVALID_ARG;
+	// }
+	// sublength = read_int32(wr); // 读完后，文件定位在data首址
+	// wr->data_length = sublength;
+	// ESP_LOGE("WAV", "data pos: %ld, data_len: %ld\n", fs_tell(wr->file), wr->data_length);
+
 	return wr;
 }
 
@@ -91,8 +131,9 @@ void wav_decoder_deinit(void* obj) {
 	free(wr);
 }
 
-esp_err_t wav_file_open(wav_decoder_t* wr, const char *filename)
+esp_err_t wav_file_open(void* obj, const char *filename)
 {
+	wav_decoder_t* wr = (wav_decoder_t*) obj;
 	if(!wr){
 		return ESP_ERR_INVALID_ARG;
 	}
@@ -139,8 +180,9 @@ esp_err_t wav_file_open(wav_decoder_t* wr, const char *filename)
 	return ESP_OK;
 }
 
-void wav_file_close(wav_decoder_t* wr)
+void wav_file_close(void* obj)
 {
+	wav_decoder_t* wr = (wav_decoder_t*) obj;
 	if(wr->file){
 		fs_close(wr->file);
 		free(wr->file);
@@ -174,8 +216,7 @@ int wav_file_read(void* obj, unsigned char* data, unsigned int length) {
 		fs_read(wr->file, data, length, &n);
 	}
 	wr->data_length -= n;
-
-	ESP_LOGE("WAV", "data[0], %d, read len: %d, file_pos: %ld, read len: %d, data_len: %ld\n", *data, n, fs_tell(wr->file), length, wr->data_length);
+	// ESP_LOGE("WAV", "data[0], %d, read len: %d, file_pos: %ld, read len: %d, data_len: %ld\n", *data, n, fs_tell(wr->file), length, wr->data_length);
 
 	return n;
 }

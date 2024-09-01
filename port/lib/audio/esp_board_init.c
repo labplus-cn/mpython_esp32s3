@@ -26,7 +26,7 @@ static const char *TAG = "hardware";
 
 esp_err_t esp_board_play_dev_create(uint32_t sample_rate, int channel_format, int bits_per_chan)
 {
-    return bsp_codec_play_dev_create(0, sample_rate, channel_format, bits_per_chan);
+    return bsp_codec_play_dev_create(sample_rate, channel_format, bits_per_chan);
 }
 
 esp_err_t esp_board_play_dev_delete(void)
@@ -36,7 +36,7 @@ esp_err_t esp_board_play_dev_delete(void)
 
 esp_err_t esp_board_record_dev_create(uint32_t sample_rate, int channel_format, int bits_per_chan)
 {
-    return bsp_codec_record_dev_create(0, sample_rate, channel_format, bits_per_chan);
+    return bsp_codec_record_dev_create(sample_rate, channel_format, bits_per_chan);
 }
 
 esp_err_t esp_board_record_dev_delete(void)

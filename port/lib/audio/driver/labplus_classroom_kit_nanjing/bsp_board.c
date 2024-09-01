@@ -32,7 +32,6 @@
 #include "esp_rom_sys.h"
 #include "esp_check.h"
 // #include "audio/fatfs/audio_file.h"
-#include "sdmmc_cmd.h"
 #if ((SOC_SDMMC_HOST_SUPPORTED) && (FUNC_SDMMC_EN))
 #include "driver/sdmmc_host.h"
 #endif /* ((SOC_SDMMC_HOST_SUPPORTED) && (FUNC_SDMMC_EN)) */
@@ -41,8 +40,9 @@
 #define GPIO_MUTE_LEVEL 1
 #define ACK_CHECK_EN   0x1     /*!< I2C master will check ack from slave*/
 #define ADC_I2S_CHANNEL 4
-static sdmmc_card_t *card;
 static const char *TAG = "board";
+#define I2S_NUM I2S_NUM_1
+
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 static i2s_chan_handle_t                tx_handle = NULL;        // I2S tx channel handler
@@ -59,8 +59,7 @@ static const audio_codec_gpio_if_t *play_gpio_if = NULL;
 static const audio_codec_if_t *play_codec_if = NULL;
 static esp_codec_dev_handle_t play_dev = NULL;
 
-/* 创建rx_handle，初始化并便能。*/
-static esp_err_t bsp_i2s_rx_init(i2s_port_t i2s_num, uint32_t sample_rate, int channel_format, int bits_per_sample)
+static esp_err_t bsp_i2s_init(uint32_t sample_rate, int channel_format, int bits_per_sample)
 {
     esp_err_t ret_val = ESP_OK;
 
@@ -81,12 +80,47 @@ static esp_err_t bsp_i2s_rx_init(i2s_port_t i2s_num, uint32_t sample_rate, int c
         bits_per_sample = 16;
     }
 
-    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_num, I2S_ROLE_MASTER);
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM, I2S_ROLE_MASTER);
+
+    ret_val |= i2s_new_channel(&chan_cfg,  &tx_handle, &rx_handle);
+    i2s_std_config_t std_cfg = I2S_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_sample);
+    ret_val |= i2s_channel_init_std_mode(tx_handle, &std_cfg);
+    ret_val |= i2s_channel_init_std_mode(rx_handle, &std_cfg);
+    ret_val |= i2s_channel_enable(tx_handle);
+    ret_val |= i2s_channel_enable(rx_handle);
+    ESP_LOGE(TAG, "I2S rx init end.");
+
+    return ESP_OK;
+}
+/* 创建rx_handle，初始化并便能。*/
+static esp_err_t bsp_i2s_rx_init(uint32_t sample_rate, int channel_format, int bits_per_sample)
+{
+    esp_err_t ret_val = ESP_OK;
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+    i2s_slot_mode_t channel_fmt = I2S_SLOT_MODE_STEREO;
+    if (channel_format == 1) {
+        channel_fmt = I2S_SLOT_MODE_MONO;
+    } else if (channel_format == 2) {
+        channel_fmt = I2S_SLOT_MODE_STEREO;
+    } else {
+        ESP_LOGE(TAG, "Unable to configure channel_format %d", channel_format);
+        channel_format = 1;
+        channel_fmt = I2S_SLOT_MODE_MONO;
+    }
+
+    if (bits_per_sample != 16 && bits_per_sample != 32) {
+        ESP_LOGE(TAG, "Unable to configure bits_per_sample %d", bits_per_sample);
+        bits_per_sample = 16;
+    }
+
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM, I2S_ROLE_MASTER);
 
     ret_val |= i2s_new_channel(&chan_cfg, NULL, &rx_handle);
     i2s_std_config_t std_cfg = I2S_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_sample);
     ret_val |= i2s_channel_init_std_mode(rx_handle, &std_cfg);
     ret_val |= i2s_channel_enable(rx_handle);
+    ESP_LOGE(TAG, "I2S rx init end.");
 #else
     i2s_channel_fmt_t channel_fmt = I2S_CHANNEL_FMT_RIGHT_LEFT;
     if (channel_format == 1) {
@@ -137,7 +171,7 @@ static esp_err_t bsp_i2s_rx_init(i2s_port_t i2s_num, uint32_t sample_rate, int c
 }
 
 /* 创建tx_handle，初始化并便能。*/
-static esp_err_t bsp_i2s_tx_init(i2s_port_t i2s_num, uint32_t sample_rate, int channel_format, int bits_per_sample)
+static esp_err_t bsp_i2s_tx_init(uint32_t sample_rate, int channel_format, int bits_per_sample)
 {
     esp_err_t ret_val = ESP_OK;
 
@@ -158,13 +192,14 @@ static esp_err_t bsp_i2s_tx_init(i2s_port_t i2s_num, uint32_t sample_rate, int c
         bits_per_sample = 16;
     }
 
-    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_num, I2S_ROLE_MASTER);
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM, I2S_ROLE_MASTER);
     chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
 
     ret_val |= i2s_new_channel(&chan_cfg, &tx_handle, NULL);
     i2s_std_config_t std_cfg = I2S_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_sample);
     ret_val |= i2s_channel_init_std_mode(tx_handle, &std_cfg);
     ret_val |= i2s_channel_enable(tx_handle);
+    ESP_LOGE(TAG, "I2S tx init end.");
 #else
     i2s_channel_fmt_t channel_fmt = I2S_CHANNEL_FMT_RIGHT_LEFT;
     if (channel_format == 1) {
@@ -214,7 +249,7 @@ static esp_err_t bsp_i2s_tx_init(i2s_port_t i2s_num, uint32_t sample_rate, int c
     return ret_val;
 }
 /* 删除i2s通道，并释放相关资源。*/
-static esp_err_t bsp_i2s_deinit(i2s_port_t i2s_num, bool is_rx_handle)
+static esp_err_t bsp_i2s_deinit(bool is_rx_handle)
 {
     esp_err_t ret_val = ESP_OK;
 
@@ -233,8 +268,8 @@ static esp_err_t bsp_i2s_deinit(i2s_port_t i2s_num, bool is_rx_handle)
         }
     }
 #else
-    ret_val |= i2s_stop(i2s_num);
-    ret_val |= i2s_driver_uninstall(i2s_num);
+    ret_val |= i2s_stop(I2S_NUM);
+    ret_val |= i2s_driver_uninstall(I2S_NUM);
 #endif
 
     return ret_val;
@@ -259,15 +294,15 @@ esp_err_t bsp_i2c_init(i2c_port_t i2c_num, uint32_t clk_speed)
     return ESP_OK;
 }
 
-esp_err_t bsp_codec_record_dev_create(i2s_port_t i2s_num, uint32_t sample_rate, int channel_format, int bits_per_sample)
+esp_err_t bsp_codec_record_dev_create(uint32_t sample_rate, int channel_format, int bits_per_sample)
 {
     esp_err_t ret_val = ESP_OK;
 
-    bsp_i2s_rx_init(0, sample_rate, channel_format, bits_per_sample);
+    // bsp_i2s_rx_init(sample_rate, channel_format, bits_per_sample);
 
     // Do initialize of related interface: data_if, ctrl_if and gpio_if
     audio_codec_i2s_cfg_t i2s_cfg = {
-        .port = i2s_num,
+        .port = I2S_NUM,
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
         .rx_handle = rx_handle,
         .tx_handle = NULL,
@@ -279,10 +314,12 @@ esp_err_t bsp_codec_record_dev_create(i2s_port_t i2s_num, uint32_t sample_rate, 
     record_ctrl_if = audio_codec_new_i2c_ctrl(&i2c_cfg);
     // New input codec interface
     es8388_codec_cfg_t es8388_cfg = {
+        .codec_mode = ESP_CODEC_DEV_WORK_MODE_ADC,
         .ctrl_if = record_ctrl_if,
         .master_mode = false,
     };
     record_codec_if = es8388_codec_new(&es8388_cfg);
+    ESP_LOGE(TAG, "es8388 recor_codec_if create.");
     // New input codec device
     esp_codec_dev_cfg_t dev_cfg = {
         .codec_if = record_codec_if,
@@ -291,21 +328,29 @@ esp_err_t bsp_codec_record_dev_create(i2s_port_t i2s_num, uint32_t sample_rate, 
     };
     record_dev = esp_codec_dev_new(&dev_cfg);
 
+    esp_codec_dev_sample_info_t fs = {
+        .sample_rate = 16000,
+        .channel = 2,
+        .bits_per_sample = 32,
+    };
+    esp_codec_dev_open(record_dev, &fs);
     // esp_codec_dev_set_in_gain(record_dev, RECORD_VOLUME);
     esp_codec_dev_set_in_channel_gain(record_dev, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(0), RECORD_VOLUME);
     esp_codec_dev_set_in_channel_gain(record_dev, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(1), RECORD_VOLUME);
 
+    ESP_LOGE(TAG, "recorder dev create.");
     return ret_val;
 }
 
-esp_err_t bsp_codec_play_dev_create(i2s_port_t i2s_num, uint32_t sample_rate, int channel_format, int bits_per_sample)
+esp_err_t bsp_codec_play_dev_create(uint32_t sample_rate, int channel_format, int bits_per_sample)
 {
     esp_err_t ret_val = ESP_OK;
 
-    bsp_i2s_tx_init(i2s_num, sample_rate, channel_format, bits_per_sample);
+    bsp_i2s_init(sample_rate, channel_format, bits_per_sample);
+    // bsp_i2s_rx_init(16000, 2, 32);
     // Do initialize of related interface: data_if, ctrl_if and gpio_if
     audio_codec_i2s_cfg_t i2s_cfg = {
-        .port = i2s_num,
+        .port = I2S_NUM,
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
         .rx_handle = NULL,
         .tx_handle = tx_handle,
@@ -323,6 +368,7 @@ esp_err_t bsp_codec_play_dev_create(i2s_port_t i2s_num, uint32_t sample_rate, in
         .gpio_if = play_gpio_if,
     };
     play_codec_if = es8388_codec_new(&es8388_cfg);
+    ESP_LOGE(TAG, "es8388 recor_codec_if create.");
     // New output codec device
     esp_codec_dev_cfg_t dev_cfg = {
         .codec_if = play_codec_if,
@@ -330,15 +376,18 @@ esp_err_t bsp_codec_play_dev_create(i2s_port_t i2s_num, uint32_t sample_rate, in
         .dev_type = ESP_CODEC_DEV_TYPE_OUT,
     };
     play_dev = esp_codec_dev_new(&dev_cfg);
+    ESP_LOGE(TAG, "es8388 play dev create.");
 
     esp_codec_dev_sample_info_t fs = {
-        .bits_per_sample = bits_per_sample,
         .sample_rate = sample_rate,
         .channel = channel_format,
+        .bits_per_sample = bits_per_sample,
     };
-    esp_codec_dev_set_out_vol(play_dev, PLAYER_VOLUME);
-    esp_codec_dev_open(play_dev, &fs);
+    ESP_LOGE("TEST", "OPEN PLAY DEV.");
 
+    esp_codec_dev_set_out_vol(play_dev, PLAYER_VOLUME);   
+    esp_codec_dev_open(play_dev, &fs);   
+    ESP_LOGE(TAG, "play dev init.");
     return ret_val;
 }
 
@@ -346,7 +395,7 @@ esp_err_t bsp_codec_record_dev_delete(void)
 {
     esp_err_t ret_val = ESP_OK;
 
-    bsp_i2s_deinit(0, true);
+    bsp_i2s_deinit(true);
 
     if (record_dev) {
         esp_codec_dev_close(record_dev);
@@ -379,7 +428,7 @@ esp_err_t bsp_codec_play_dev_delete(void)
 {
     esp_err_t ret_val = ESP_OK;
 
-    bsp_i2s_deinit(0, false);
+    bsp_i2s_deinit(false);
 
     if (play_dev) {
         esp_codec_dev_close(play_dev);
@@ -415,15 +464,21 @@ esp_err_t bsp_codec_play_dev_delete(void)
 
 esp_err_t bsp_codec_record_dev_open(uint32_t sample_rate, int channel_format, int bits_per_sample)
 {
+    esp_err_t err = ESP_OK;
+
     if(record_dev){
         esp_codec_dev_sample_info_t fs = {
             .sample_rate = sample_rate,
             .channel = channel_format,
             .bits_per_sample = bits_per_sample,
         };
-        return esp_codec_dev_open(record_dev, &fs);
+        ESP_LOGE("TEST", "OPEN record DEV.");
+        err = esp_codec_dev_open(record_dev, &fs);
+        // esp_codec_dev_set_in_gain(record_dev, RECORD_VOLUME);
+        esp_codec_dev_set_in_channel_gain(record_dev, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(0), RECORD_VOLUME);
+        esp_codec_dev_set_in_channel_gain(record_dev, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(1), RECORD_VOLUME);       
     }
-    return ESP_OK;
+    return err;
 }
 
 esp_err_t bsp_codec_record_dev_close(void)
@@ -436,6 +491,7 @@ esp_err_t bsp_codec_record_dev_close(void)
 
 esp_err_t bsp_codec_play_dev_open(uint32_t sample_rate, int channel_format, int bits_per_sample)
 {
+    esp_err_t err = ESP_OK;
     if(play_dev){
         esp_codec_dev_sample_info_t fs = {
             .sample_rate = sample_rate,
@@ -443,9 +499,11 @@ esp_err_t bsp_codec_play_dev_open(uint32_t sample_rate, int channel_format, int 
             .bits_per_sample = bits_per_sample,
         };
         ESP_LOGE("TEST", "OPEN PLAY DEV.");
-        return esp_codec_dev_open(play_dev, &fs);
+        
+        err = esp_codec_dev_open(play_dev, &fs);
+        esp_codec_dev_set_out_vol(play_dev, PLAYER_VOLUME);
     }
-    return ESP_OK;
+    return err;
 }
 
 esp_err_t bsp_codec_play_dev_close(void)

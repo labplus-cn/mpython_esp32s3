@@ -69,10 +69,10 @@ typedef enum {
     POWER_MODULE_ALL = 0xff,    /*!< All module power control */
 } power_module_t;
 
-esp_err_t bsp_i2s_deinit(i2s_port_t i2s_num, bool is_rx_handle);
-esp_err_t bsp_codec_play_dev_create(i2s_port_t i2s_num, uint32_t sample_rate, int channel_format, int bits_per_sample);
+esp_err_t bsp_i2s_deinit(bool is_rx_handle);
+esp_err_t bsp_codec_play_dev_create(uint32_t sample_rate, int channel_format, int bits_per_sample);
 esp_err_t bsp_codec_play_dev_delete(void);
-esp_err_t bsp_codec_record_dev_create(i2s_port_t i2s_num, uint32_t sample_rate, int channel_format, int bits_per_sample);
+esp_err_t bsp_codec_record_dev_create(uint32_t sample_rate, int channel_format, int bits_per_sample);
 esp_err_t bsp_codec_record_dev_delete(void);
 esp_err_t bsp_codec_record_dev_open(int sample_rate, int channel_format, int bits_per_sample);
 esp_err_t bsp_codec_record_dev_close(void);

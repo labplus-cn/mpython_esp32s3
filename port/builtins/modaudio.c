@@ -39,11 +39,13 @@
 #include "audio/include/recorder.h"
 
 static const char *TAG = "audio";
-
 /* ---------------player ------------------------*/
 static mp_obj_t audio_player_init(size_t n_args, const mp_obj_t *args)
 {
-    // esp_board_init(16000, 2, 16);
+    esp_board_play_dev_create(16000, 2, 16);
+    esp_board_record_dev_create(16000, 2, 32);
+    player_create(4096, 1);
+
     return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_player_init_obj, 0, 1, audio_player_init);
@@ -58,10 +60,9 @@ static mp_obj_t audio_play(mp_obj_t url)
 // static mp_obj_t audio_play(void)
 {
    const char *_url = mp_obj_str_get_str(url);
-
-   player_handle_t *player = player_create(4096, 0);
-   vTaskDelay(10 / portTICK_PERIOD_MS);
-   player_play(player, _url);
+   if(player){
+        player_play(player, _url);
+   }
     
     return mp_const_none;
 }

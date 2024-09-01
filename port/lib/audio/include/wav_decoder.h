@@ -38,15 +38,15 @@ typedef struct wav_decoder {
 	int block_align;
 } wav_decoder_t;
 
-void* wav_decoder_init(void);
+void* wav_decoder_init(const char* filename);
 void wav_decoder_deinit(void* obj);
 int wav_decoder_get_header(void* obj, int* format, int* channels, int* sample_rate, int* bits_per_sample, unsigned int* data_length);
 int wav_decoder_get_sample_rate(void* obj);
 int wav_decoder_get_channel(void* obj);
 int wav_decoder_get_data_length(void* obj);
 
-esp_err_t wav_file_open(wav_decoder_t* wr, const char *filename);
-void wav_file_close(wav_decoder_t* wr);
+esp_err_t wav_file_open(void* obj, const char *filename);
+void wav_file_close(void* obj);
 int wav_file_read(void* obj, unsigned char* data, unsigned int length);
 
 #ifdef __cplusplus
