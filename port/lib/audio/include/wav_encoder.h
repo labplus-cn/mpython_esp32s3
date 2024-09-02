@@ -25,7 +25,7 @@ extern "C" {
 
 void* wav_encoder_open(const char *filename, int sample_rate, int bits_per_sample, int channels);
 void wav_encoder_close(void* obj);
-void wav_encoder_run(void* obj, const unsigned char* data, int length);
+void wav_encoder_run(void* obj, unsigned char* data, int length);
 
 #ifdef __cplusplus
 }

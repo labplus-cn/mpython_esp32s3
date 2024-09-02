@@ -61,8 +61,8 @@ static void stream_in_task(void *arg)
 static void stream_out_task(void *arg)
 {
     recorder_handle_t *recorder = arg;
-    int16_t* buffer = malloc(recorder->frame_size * sizeof(int16_t));
-    int16_t* zero_buffer = calloc(recorder->frame_size, sizeof(int16_t));
+    unsigned char* buffer = malloc(recorder->frame_size * sizeof(unsigned char));
+    unsigned char* zero_buffer = calloc(recorder->frame_size, sizeof(unsigned char));
     printf("stream_out is running.\n");
     void *ww = NULL;
     ww = wav_encoder_open(recorder->audio_file, recorder->sample_rate, recorder->bits_per_sample, recorder->channels);
@@ -73,7 +73,7 @@ static void stream_out_task(void *arg)
         switch (recorder->recorder_state) {
         case 1: // play
             xQueueReceive(recorder->recorder_queue, buffer, portMAX_DELAY);
-            wav_encoder_run(ww, (int8_t *)buffer, recorder->frame_size);
+            wav_encoder_run(ww, buffer, recorder->frame_size);
             // ESP_LOGE(TAG, "stream out.");
             break;
 

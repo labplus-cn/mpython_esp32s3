@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "audio/fatfs/src/ff.h"
+#include "audio/fatfs/vfs/esp_vfs_fat.h"
 #include "audio/include/wav_encoder.h"
 
 struct wav_encoder {
@@ -96,7 +97,7 @@ void* wav_encoder_open(const char *filename, int sample_rate, int bits_per_sampl
 	ww->fs = esp_vfs_fat_spiflash_get_fs();
 	ww->file = (FIL*) malloc(sizeof(FIL));
 	if (ww->fs == NULL || fs_open(ww->fs, ww->file, filename, FA_READ) != FR_OK) {
-		free(wr);
+		free(ww);
 		return NULL;
 	}
 
@@ -121,7 +122,7 @@ void wav_encoder_close(void* obj) {
 	free(ww);
 }
 
-void wav_encoder_run(void* obj, const unsigned char* data, int length) {
+void wav_encoder_run(void* obj, unsigned char* data, int length) {
 	struct wav_encoder* ww = (struct wav_encoder*) obj;
 	unsigned int n;
 	if (ww->file == NULL)
