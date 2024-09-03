@@ -31,6 +31,7 @@
 #include "driver/i2c.h"
 #include "esp_rom_sys.h"
 #include "esp_check.h"
+#include "soc/io_mux_reg.h"
 // #include "audio/fatfs/audio_file.h"
 #include "sdmmc_cmd.h"
 #if ((SOC_SDMMC_HOST_SUPPORTED) && (FUNC_SDMMC_EN))
@@ -85,7 +86,7 @@ esp_err_t bsp_codec_adc_init(int sample_rate)
 
     // Do initialize of related interface: data_if, ctrl_if and gpio_if
     audio_codec_i2s_cfg_t i2s_cfg = {
-        .port = I2S_NUM_1,
+        .port = I2S_NUM,
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
         .rx_handle = rx_handle,
         .tx_handle = NULL,
@@ -128,7 +129,7 @@ esp_err_t bsp_codec_dac_init(int sample_rate, int channel_format, int bits_per_c
 
     // Do initialize of related interface: data_if, ctrl_if and gpio_if
     audio_codec_i2s_cfg_t i2s_cfg = {
-        .port = I2S_NUM_1,
+        .port = I2S_NUM,
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
         .rx_handle = NULL,
         .tx_handle = tx_handle,
@@ -138,12 +139,12 @@ esp_err_t bsp_codec_dac_init(int sample_rate, int channel_format, int bits_per_c
 
     audio_codec_i2c_cfg_t i2c_cfg = {.addr = ES8388_CODEC_DEFAULT_ADDR};
     play_ctrl_if = audio_codec_new_i2c_ctrl(&i2c_cfg);
-    play_gpio_if = audio_codec_new_gpio();
+    // play_gpio_if = audio_codec_new_gpio();
     // New output codec interface
     es8388_codec_cfg_t es8388_cfg = {
         .codec_mode = ESP_CODEC_DEV_WORK_MODE_DAC,
         .ctrl_if = play_ctrl_if,
-        .gpio_if = play_gpio_if,
+        // .gpio_if = play_gpio_if,
     };
     play_codec_if = es8388_codec_new(&es8388_cfg);
     // New output codec device
@@ -337,11 +338,11 @@ static esp_err_t bsp_i2s_deinit(i2s_port_t i2s_num)
     esp_err_t ret_val = ESP_OK;
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-    if (i2s_num == I2S_NUM_1 && rx_handle) {
+    if (i2s_num == I2S_NUM && rx_handle) {
         ret_val |= i2s_channel_disable(rx_handle);
         ret_val |= i2s_del_channel(rx_handle);
         rx_handle = NULL;
-    } else if (i2s_num == I2S_NUM_1  && tx_handle) {
+    } else if (i2s_num == I2S_NUM  && tx_handle) {
         ret_val |= i2s_channel_disable(tx_handle);
         ret_val |= i2s_del_channel(tx_handle);
         tx_handle = NULL;
@@ -411,7 +412,7 @@ esp_err_t bsp_board_init(uint32_t sample_rate, int channel_format, int bits_per_
 {
     /*!< Initialize I2C bus, used for audio codec*/
     bsp_i2c_init(I2C_NUM, I2C_CLK);
-    bsp_i2s_init(I2S_NUM_1, sample_rate, channel_format, bits_per_chan);
+    bsp_i2s_init(I2S_NUM, sample_rate, channel_format, bits_per_chan);
 
     bsp_codec_init(16000, sample_rate, channel_format, bits_per_chan);
     /* Initialize PA */

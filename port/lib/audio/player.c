@@ -43,6 +43,7 @@ void stream_in_task(void *arg)
                 memset(buffer + size, 0, player->frame_size - size); //清掉buffer无效数据区
                 wav_decoder_close(wav_decoder);
                 wav_decoder = NULL;
+                ESP_LOGE(TAG, "stream IDLE.");
                 while(1){
                     vTaskDelay(16 / portTICK_PERIOD_MS);
                 }
@@ -62,7 +63,7 @@ void stream_in_task(void *arg)
 
         case 4: // exit
             vTaskDelay(2000 / portTICK_PERIOD_MS);
-            printf("audio file read end.\n");
+            ESP_LOGE(TAG, "audio file read end.\n");
             free(buffer);
             if (wav_decoder != NULL)
                 wav_decoder_close(wav_decoder);
@@ -80,7 +81,7 @@ void stream_out_task(void *arg)
     player_handle_t *player = arg;
     int16_t* buffer = malloc(player->frame_size * sizeof(unsigned char));
     int16_t* zero_buffer = calloc(player->frame_size, sizeof(unsigned char));
-    printf("stream_out is running.\n");
+    ESP_LOGE(TAG, "stream_out is running.\n");
     int count = 0;
     while (1) {
         count++;
@@ -101,7 +102,7 @@ void stream_out_task(void *arg)
             break;
 
         case 4: // exit
-            printf("play end.\n");
+            ESP_LOGE(TAG, "play end.\n");
             vTaskDelay(2000 / portTICK_PERIOD_MS);
             free(buffer);
             while(1){
@@ -140,13 +141,13 @@ int file_list_scan(void *handle, const char *path)
                 memset(player->file_list[player->file_num], 0, FATFS_PATH_LENGTH_MAX);
                 memcpy(player->file_list[player->file_num], path, path_len);
                 memcpy(player->file_list[player->file_num] + path_len, ret->d_name, len + 1);
-                printf("%d -> %s\n", player->file_num, player->file_list[player->file_num]);
+                ESP_LOGE(TAG, "%d -> %s\n", player->file_num, player->file_list[player->file_num]);
                 player->file_num++;
             }
         }
         closedir(dir);
     } else {
-        printf("opendir NULL \r\n");
+        ESP_LOGE(TAG, "opendir NULL \r\n");
     }
     return player->file_num;
 }
@@ -187,7 +188,7 @@ void player_play(void *handle, const char *path)
 
     // file_list_scan(player, path);
     // for (int i=0; i<player->file_num; i++)
-    //  printf("%s\n", player->file_list[i]);
+    //  ESP_LOGE(TAG, "%s\n", player->file_list[i]);
 
     //set player state
     player->player_state = 1;
@@ -197,14 +198,14 @@ void player_pause(void *handle)
 {
     player_handle_t *player = handle;
     player->player_state = 2;
-    // printf("pause\n");
+    // ESP_LOGE(TAG, "pause\n");
 }
 
 void player_continue(void *handle)
 {
     player_handle_t *player = handle;
     player->player_state = 3;
-    // printf("play\n");
+    // ESP_LOGE(TAG, "play\n");
 }
 
 void player_exit(void *handle)

@@ -47,7 +47,7 @@ static void stream_in_task(void *arg)
 
         case 4: // exit
             vTaskDelay(2000 / portTICK_PERIOD_MS);
-            printf("stream read end.\n");
+            ESP_LOGE(TAG, "stream read end.\n");
             free(buffer);
             // return;
             vTaskDelete(NULL);
@@ -63,7 +63,7 @@ static void stream_out_task(void *arg)
     recorder_handle_t *recorder = arg;
     unsigned char* buffer = malloc(recorder->frame_size * sizeof(unsigned char));
     unsigned char* zero_buffer = calloc(recorder->frame_size, sizeof(unsigned char));
-    printf("stream_out is running.\n");
+    ESP_LOGE(TAG, "stream_out is running.\n");
     void *ww = NULL;
     ww = wav_encoder_open(recorder->audio_file, recorder->sample_rate, recorder->bits_per_sample, recorder->channels);
 
@@ -74,7 +74,6 @@ static void stream_out_task(void *arg)
         case 1: // play
             xQueueReceive(recorder->recorder_queue, buffer, portMAX_DELAY);
             wav_encoder_run(ww, buffer, recorder->frame_size);
-            // ESP_LOGE(TAG, "stream out.");
             break;
 
         case 2: // pause or stop
@@ -86,7 +85,7 @@ static void stream_out_task(void *arg)
             break;
 
         case 4: // exit
-            printf("recorder end.\n");
+            ESP_LOGE(TAG, "recorder end.\n");
             vTaskDelay(2000 / portTICK_PERIOD_MS);
             free(buffer);
             while(1){
@@ -144,14 +143,14 @@ void recorder_pause(void *handle)
 {
     recorder_handle_t *recorder = handle;
     recorder->recorder_state = 2;
-    // printf("pause\n");
+    // ESP_LOGE(TAG, "pause\n");
 }
 
 void recorder_continue(void *handle)
 {
     recorder_handle_t *recorder = handle;
     recorder->recorder_state = 3;
-    // printf("play\n");
+    // ESP_LOGE(TAG, "play\n");
 }
 
 void recorder_exit(void *handle)

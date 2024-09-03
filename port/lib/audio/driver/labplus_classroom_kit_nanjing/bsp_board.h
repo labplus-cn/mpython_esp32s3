@@ -68,6 +68,8 @@
  * @brief labplus_classroom_kit I2S GPIO defination
  * 
  */
+#define I2S_NUM         (I2S_NUM_0)
+
 #define FUNC_I2S_EN         (1)
 #define GPIO_I2S_LRCK       (GPIO_NUM_12)
 #define GPIO_I2S_MCLK       (GPIO_NUM_0)
@@ -91,7 +93,7 @@
  * @brief player configurations
  *
  */
-#define PLAYER_VOLUME   (90)
+#define PLAYER_VOLUME   (60)
 
 /**
  * @brief ESP32-S3-HMI-DevKit power control IO
