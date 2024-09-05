@@ -22,46 +22,31 @@
 #include "audio/driver/esp_bsp_board.h"
 #include "audio/include/esp_board_init.h"
 
-static const char *TAG = "hardware";
+// static const char *TAG = "hardware";
 
-esp_err_t esp_board_play_dev_create(uint32_t sample_rate, int channel_format, int bits_per_chan)
+esp_err_t esp_board_i2s_init(uint32_t sample_rate, int channel_format, int bits_per_chan)
 {
-    return bsp_codec_play_dev_create(sample_rate, channel_format, bits_per_chan);
+    return bsp_i2s_init(sample_rate, channel_format, bits_per_chan);
 }
 
-esp_err_t esp_board_play_dev_delete(void)
+esp_err_t esp_board_codec_dev_create(void)
 {
-    return bsp_codec_play_dev_delete();
+    return bsp_codec_dev_create();
 }
 
-esp_err_t esp_board_record_dev_create(uint32_t sample_rate, int channel_format, int bits_per_chan)
+esp_err_t esp_board_codec_dev_delete(void)
 {
-    return bsp_codec_record_dev_create(sample_rate, channel_format, bits_per_chan);
+    return bsp_codec_dev_delete();
 }
 
-esp_err_t esp_board_record_dev_delete(void)
+esp_err_t esp_board_codec_dev_open(uint32_t sample_rate, int channel_format, int bits_per_chan)
 {
-    return bsp_codec_record_dev_delete();
+    return bsp_codec_dev_open(sample_rate, channel_format, bits_per_chan);
 }
 
-esp_err_t esp_board_record_dev_open(uint32_t sample_rate, int channel_format, int bits_per_chan)
+esp_err_t esp_board_dev_close(void)
 {
-    return bsp_codec_record_dev_open(sample_rate, channel_format, bits_per_chan);
-}
-
-esp_err_t esp_board_record_dev_close(void)
-{
-    return bsp_codec_record_dev_close();
-}
-
-esp_err_t esp_board_play_dev_open(uint32_t sample_rate, int channel_format, int bits_per_chan)
-{
-    return bsp_codec_play_dev_open(sample_rate, channel_format, bits_per_chan);
-}
-
-esp_err_t esp_board_play_dev_close(void)
-{
-    return bsp_codec_play_dev_close();
+    return bsp_codec_dev_close();
 }
 
 esp_err_t esp_get_feed_data(bool is_get_raw_channel, int16_t *buffer, int buffer_len)

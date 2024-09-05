@@ -34,15 +34,11 @@ extern "C" {
  *    - ESP_OK: Success
  *    - Others: Fail
  */
-esp_err_t esp_board_play_dev_create(uint32_t sample_rate, int channel_format, int bits_per_chan);
-esp_err_t esp_board_play_dev_delete(void);
-esp_err_t esp_board_play_dev_open(uint32_t sample_rate, int channel_format, int bits_per_sample);
-esp_err_t esp_board_play_dev_close(void);
-esp_err_t esp_board_record_dev_create(uint32_t sample_rate, int channel_format, int bits_per_chan);
-esp_err_t esp_board_record_dev_delete(void);
-esp_err_t esp_board_record_dev_open(uint32_t sample_rate, int channel_format, int bits_per_chan);
-esp_err_t esp_board_record_dev_close(void);
-
+esp_err_t esp_board_i2s_init(uint32_t sample_rate, int channel_format, int bits_per_chan);
+esp_err_t esp_board_codec_dev_create(void);
+esp_err_t esp_board_codec_dev_delete(void);
+esp_err_t esp_board_codec_dev_open(uint32_t sample_rate, int channel_format, int bits_per_chan);
+esp_err_t esp_board_codec_dev_close(void);
 
 esp_err_t get_i2s_data(char *buffer, int buffer_len);
 esp_err_t esp_audio_play(const int16_t* data, int length, TickType_t ticks_to_wait);

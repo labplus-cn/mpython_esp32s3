@@ -42,9 +42,9 @@ static const char *TAG = "audio";
 /* ---------------player ------------------------*/
 static mp_obj_t audio_player_init(size_t n_args, const mp_obj_t *args)
 {
-    esp_board_play_dev_create(16000, 2, 16);
-    esp_board_record_dev_create(16000, 2, 32);
-    esp_audio_set_play_vol(90);
+    esp_board_i2s_init(16000, 2, 16);
+    esp_board_codec_dev_create();
+    // esp_board_record_dev_create();
     player_create(4096, 1);
 
     return mp_const_none;

@@ -45,7 +45,7 @@ void stream_in_task(void *arg)
                 // esp_board_play_dev_create(16000, 2, 32);
                 wav_file_open(wav_decoder, player->audio_file);
                 // esp_board_record_dev_open(wav_decoder->sample_rate, wav_decoder->channels, wav_decoder->bits_per_sample);
-                // esp_board_play_dev_open(wav_decoder->sample_rate, wav_decoder->channels, wav_decoder->bits_per_sample);
+                esp_board_codec_dev_open(wav_decoder->sample_rate, wav_decoder->channels, wav_decoder->bits_per_sample);
                 playdev_is_open = true;
                 ESP_LOGE("TAG", "begin play.");
             }
