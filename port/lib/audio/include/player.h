@@ -27,6 +27,7 @@ void player_pause(void *handle);
 void player_continue(void *handle);
 void player_exit(void *handle);
 int player_get_state(void *handle);
+void player_set_vol(void *handle, int vol);
 void player_increase_vol(void *handle);
 void player_decrease_vol(void *handle);
 

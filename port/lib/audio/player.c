@@ -235,6 +235,12 @@ int player_get_state(void *handle)
     return player->player_state;
 }
 
+void player_set_vol(void *handle, int vol)
+{
+    esp_audio_set_play_vol(vol);
+    
+}
+
 void player_increase_vol(void *handle)
 {
     int vol = 0;
