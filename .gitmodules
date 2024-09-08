@@ -3,3 +3,12 @@
 	url = https://github.com/labplus-cn/mpython-docs.git
 
 
+[submodule "esp-idf-v5.0.4"]
+	path = esp-idf-v5.0.4
+	url = git@github.com:labplus-cn/esp-idf-v5.0.4.git
+[submodule "esp-adf-master"]
+	path = esp-adf-master
+	url = git@github.com:labplus-cn/esp-adf-master.git
+[submodule "micropython"]
+	path = micropython
+	url = git@github.com:labplus-cn/micropython.git
