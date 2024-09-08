@@ -2,12 +2,3 @@
 	path = mpython-docs
 	url = https://github.com/labplus-cn/mpython-docs.git
 
-[submodule "micropython-v1.23.0"]
-	path = micropython-v1.23.0
-	url = git@gitee.com:zhaohuijiang/micropython-v1.23.0.git
-[submodule "esp-adf-master"]
-	path = esp-adf-master
-	url = git@gitee.com:zhaohuijiang/esp-adf-master.git
-[submodule "esp-idf-v5.04"]
-	path = esp-idf-v5.04
-	url = git@gitee.com:zhaohuijiang/esp-idf-v5.04.git
