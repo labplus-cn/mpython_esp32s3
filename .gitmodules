@@ -8,6 +8,4 @@
 [submodule "micropython"]
 	path = micropython
 	url = git@gitee.com:zhaohuijiang/micropython.git
-[submodule "esp-idf"]
-	path = esp-idf
-	url = git@gitee.com:zhaohuijiang/esp-idf.git
+
