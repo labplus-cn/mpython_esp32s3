@@ -1,3 +1,12 @@
 [submodule "mpython-docs"]
 	path = mpython-docs
 	url = https://github.com/labplus-cn/mpython-docs.git
+[submodule "micropython"]
+	path = micropython
+	url = git@github.com:labplus-cn/micropython-v1.23.0.git
+[submodule "esp-idf"]
+	path = esp-idf
+	url = git@github.com:labplus-cn/esp-idf-v5.0.4.git
+[submodule "esp-adf"]
+	path = esp-adf
+	url = git@github.com:labplus-cn/esp-adf.git
