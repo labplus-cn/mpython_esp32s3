@@ -14,6 +14,10 @@ if(NOT MPY_PORT_DIR)
     get_filename_component(MPY_PORT_DIR ${CMAKE_CURRENT_LIST_DIR}/../.. ABSOLUTE)
 endif()
 
+if(NOT ADF_PATH)
+    get_filename_component(ADF_PATH ${CMAKE_CURRENT_LIST_DIR}/../../../esp-adf ABSOLUTE)
+endif()
+
 set(MICROPY_SOURCE_BOARD
     ${MICROPY_BOARD_DIR}/main.c
     # ${MPY_PORT_DIR}/drivers/startup/00030.c
@@ -36,5 +40,13 @@ set(MICROPY_SOURCE_BOARD_DIR
     ${MPY_PORT_DIR}/lib
     ${MPY_PORT_DIR}/builtins
 )
+
+list(APPEND EXTRA_COMPONENT_DIRS
+        ${ADF_PATH}/components/audio_pipeline
+        ${ADF_PATH}/components/audio_sal
+        ${ADF_PATH}/components/esp-adf-libs
+        ${ADF_PATH}/components/esp-sr
+        # ${ADF_PATH}/micropython_adf/boards
+        )
 
 set(MICROPY_FROZEN_MANIFEST ${MICROPY_BOARD_DIR}/manifest.py)
