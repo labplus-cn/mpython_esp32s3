@@ -6,6 +6,5 @@
 #define MICROPY_PY_ESP_MUSIC                   (1)
 #endif
 
-#define MICROPY_PY_TTS                         (1)
+// #define MICROPY_PY_TTS                         (1)
 // #define MICROPY_PY_ASR                         (1)
-#define MICROPY_PY_AUDIO         (1)
