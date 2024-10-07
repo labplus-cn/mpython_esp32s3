@@ -39,8 +39,13 @@
 #define RW_TEST_LENGTH                     129              /*!<Data length for r/w test, any value from 0-DATA_LENGTH*/
 #define DELAY_TIME_BETWEEN_ITEMS_MS        1234             /*!< delay time between different test items */
 
+#if CONFIG_IDF_TARGET_ESP32
 #define I2C_MASTER_SCL_IO                  22               /*!< gpio number for I2C master clock */
 #define I2C_MASTER_SDA_IO                  23               /*!< gpio number for I2C master data  */
+#elif CONFIG_IDF_TARGET_ESP32S3
+#define I2C_MASTER_SCL_IO                  18 //34               
+#define I2C_MASTER_SDA_IO                  8  //35
+#endif
 #define I2C_MASTER_NUM                     I2C_NUM_1       /*!< I2C port number for master dev */
 #define I2C_MASTER_TX_BUF_DISABLE          0                /*!< I2C master do not need buffer */
 #define I2C_MASTER_RX_BUF_DISABLE          0                /*!< I2C master do not need buffer */

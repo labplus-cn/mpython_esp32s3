@@ -382,6 +382,7 @@ static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_DRIVE_2), MP_ROM_INT(GPIO_DRIVE_CAP_2) },
     { MP_ROM_QSTR(MP_QSTR_DRIVE_3), MP_ROM_INT(GPIO_DRIVE_CAP_3) },
         // mpython connector pins
+    #if CONFIG_IDF_TARGET_ESP32
     { MP_ROM_QSTR(MP_QSTR_P0), MP_ROM_INT(GPIO_NUM_33) },
     { MP_ROM_QSTR(MP_QSTR_P1), MP_ROM_INT(GPIO_NUM_32) },
     { MP_ROM_QSTR(MP_QSTR_P2), MP_ROM_INT(GPIO_NUM_35) },
@@ -406,6 +407,34 @@ static const mp_rom_map_elem_t machine_pin_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_P26), MP_ROM_INT(GPIO_NUM_13) },   
     { MP_ROM_QSTR(MP_QSTR_P27), MP_ROM_INT(GPIO_NUM_15) },
     { MP_ROM_QSTR(MP_QSTR_P28), MP_ROM_INT(GPIO_NUM_4) },
+    #elif CONFIG_IDF_TARGET_ESP32S3
+    { MP_ROM_QSTR(MP_QSTR_P0), MP_ROM_INT(GPIO_NUM_1) },
+    { MP_ROM_QSTR(MP_QSTR_P1), MP_ROM_INT(GPIO_NUM_2) },
+    { MP_ROM_QSTR(MP_QSTR_P2), MP_ROM_INT(GPIO_NUM_3) },
+    { MP_ROM_QSTR(MP_QSTR_P3), MP_ROM_INT(GPIO_NUM_4) },   
+    { MP_ROM_QSTR(MP_QSTR_P4), MP_ROM_INT(GPIO_NUM_5) },
+    { MP_ROM_QSTR(MP_QSTR_P5), MP_ROM_INT(GPIO_NUM_0) },   
+    { MP_ROM_QSTR(MP_QSTR_P6), MP_ROM_INT(GPIO_NUM_7) },
+    { MP_ROM_QSTR(MP_QSTR_P7), MP_ROM_INT(GPIO_NUM_8) },   
+    { MP_ROM_QSTR(MP_QSTR_P8), MP_ROM_INT(GPIO_NUM_15) },
+    { MP_ROM_QSTR(MP_QSTR_P9), MP_ROM_INT(GPIO_NUM_16) },   
+    { MP_ROM_QSTR(MP_QSTR_P10), MP_ROM_INT(GPIO_NUM_6) },
+    { MP_ROM_QSTR(MP_QSTR_P11), MP_ROM_INT(GPIO_NUM_46) }, 
+    { MP_ROM_QSTR(MP_QSTR_P12), MP_ROM_INT(GPIO_NUM_21) },   
+    { MP_ROM_QSTR(MP_QSTR_P13), MP_ROM_INT(GPIO_NUM_17) },
+    { MP_ROM_QSTR(MP_QSTR_P14), MP_ROM_INT(GPIO_NUM_18) },   
+    { MP_ROM_QSTR(MP_QSTR_P15), MP_ROM_INT(GPIO_NUM_48) },
+    { MP_ROM_QSTR(MP_QSTR_P16), MP_ROM_INT(GPIO_NUM_47) },   
+    { MP_ROM_QSTR(MP_QSTR_P19), MP_ROM_INT(GPIO_NUM_34) },
+    { MP_ROM_QSTR(MP_QSTR_P20), MP_ROM_INT(GPIO_NUM_35) },   
+    { MP_ROM_QSTR(MP_QSTR_P23), MP_ROM_INT(GPIO_NUM_9) },
+    { MP_ROM_QSTR(MP_QSTR_P24), MP_ROM_INT(GPIO_NUM_10) },   
+    { MP_ROM_QSTR(MP_QSTR_P25), MP_ROM_INT(GPIO_NUM_11) },
+    { MP_ROM_QSTR(MP_QSTR_P26), MP_ROM_INT(GPIO_NUM_12) },   
+    { MP_ROM_QSTR(MP_QSTR_P27), MP_ROM_INT(GPIO_NUM_13) },
+    { MP_ROM_QSTR(MP_QSTR_P28), MP_ROM_INT(GPIO_NUM_14) },
+    
+    #endif
 };
 
 static mp_uint_t pin_ioctl(mp_obj_t self_in, mp_uint_t request, uintptr_t arg, int *errcode) {
