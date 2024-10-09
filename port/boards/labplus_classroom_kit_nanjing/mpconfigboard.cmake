@@ -33,6 +33,10 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/builtins/machine_pin.c
     ${MPY_PORT_DIR}/builtins/machine_touchpad.c
     ${MPY_PORT_DIR}/builtins/modframebuf.c
+    ${MPY_PORT_DIR}/builtins/mod_audio/audio_player.c
+    ${MPY_PORT_DIR}/builtins/mod_audio/audio_recorder.c 
+    ${MPY_PORT_DIR}/builtins/mod_audio/vfs_stream.c 
+    ${MPY_PORT_DIR}/builtins/mod_audio/modaudio.c 
     # ${MPY_PORT_DIR}/builtins/modtts.c
     # ${MPY_PORT_DIR}/builtins/modasr.c
 )
@@ -42,6 +46,25 @@ set(MICROPY_SOURCE_BOARD_DIR
     ${MPY_PORT_DIR}/lib
     ${MPY_PORT_DIR}/builtins
     ${MPY_PORT_DIR}/boards/labplus_classroom_kit_nanjing/audio
+    ${ADF_COMPS}/esp-adf-libs/esp_audio/include
+    ${ADF_COMPS}/esp-adf-libs/esp_codec/include/codec
+    ${ADF_COMPS}/esp-adf-libs/esp_codec/include/processing
+    ${ADF_COMPS}/esp-adf-libs/media_lib_sal/include
+    ${ADF_COMPS}/esp-adf-libs/media_lib_sal/include/port
+    ${ADF_COMPS}/esp-adf-libs/esp_muxer/include
+    ${ADF_COMPS}/audio_pipeline/include
+    ${ADF_COMPS}/audio_sal/include
+    ${ADF_COMPS}/audio_stream/include
+    ${ADF_COMPS}/audio_recorder/include
+    ${ADF_COMPS}/esp-sr/src/include
+    ${ADF_COMPS}/esp-sr/esp-tts/esp_tts_chinese/include
+    # if(IDF_TARGET STREQUAL "esp32")
+    ${ADF_COMPS}/esp-sr/include/esp32
+    # elseif(IDF_TARGET STREQUAL "esp32s3")
+    # ${ADF_COMPS}/esp-sr/include/esp32s3
+    # endif()
+    ${ADF_COMPS}/audio_recorder/include
+    ${ADF_COMPS}/audio_hal/include
 )
 
 list(APPEND EXTRA_COMPONENT_DIRS
