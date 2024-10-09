@@ -51,7 +51,7 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/builtins/modmusic.c
     ${MPY_PORT_DIR}/builtins/esp32_nvs.c
     ${MPY_PORT_DIR}/builtins/machine_pin.c
-    # ${MPY_PORT_DIR}/builtins/machine_touchpad.c
+    ${MPY_PORT_DIR}/builtins/machine_touchpad.c
     ${MPY_PORT_DIR}/builtins/modframebuf.c
 )
 
