@@ -43,8 +43,8 @@
 #define I2C_MASTER_SCL_IO                  22               /*!< gpio number for I2C master clock */
 #define I2C_MASTER_SDA_IO                  23               /*!< gpio number for I2C master data  */
 #elif CONFIG_IDF_TARGET_ESP32S3
-#define I2C_MASTER_SCL_IO                  18 //34               
-#define I2C_MASTER_SDA_IO                  8  //35
+#define I2C_MASTER_SCL_IO                  34               
+#define I2C_MASTER_SDA_IO                  35
 #endif
 #define I2C_MASTER_NUM                     I2C_NUM_1       /*!< I2C port number for master dev */
 #define I2C_MASTER_TX_BUF_DISABLE          0                /*!< I2C master do not need buffer */

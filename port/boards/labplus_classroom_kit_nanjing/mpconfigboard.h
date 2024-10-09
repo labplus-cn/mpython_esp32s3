@@ -6,5 +6,8 @@
 #define MICROPY_PY_ESP_MUSIC                   (1)
 #endif
 
+#define MICROPY_HW_ENABLE_GPIO16 (1)
+#define MICROPY_HW_ENABLE_GPIO17 (1)
+
 // #define MICROPY_PY_TTS                         (1)
 // #define MICROPY_PY_ASR                         (1)

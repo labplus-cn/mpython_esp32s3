@@ -34,8 +34,10 @@
 
 #if CONFIG_IDF_TARGET_ESP32
 #include "driver/touch_pad.h"
+#define TOUCHPAD_NUM     10
 #elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
 #include "driver/touch_sensor.h"
+#define TOUCHPAD_NUM     14
 #endif
 
 typedef struct _mtp_obj_t {
@@ -77,7 +79,7 @@ static const mtp_obj_t touchpad_obj[] = {
 static bool is_touchpad_intr_enabled = false;
 static bool is_touchpad_all_released = true;
 static esp_timer_handle_t touchpad_timer = NULL;
-static uint16_t touchpad_inactive_timeout[10] = {0};
+static uint16_t touchpad_inactive_timeout[TOUCHPAD_NUM] = {0};
 
 static mp_obj_t mtp_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw,
     const mp_obj_t *args) {
@@ -164,7 +166,7 @@ static void machine_touchpad_timer_cb(void *args)
         }
     }
     // all touchpad released
-    if (inactive_pad_num == 10 && is_touchpad_all_released == false) {
+    if (inactive_pad_num == TOUCHPAD_NUM && is_touchpad_all_released == false) {
         is_touchpad_all_released = true;
         esp_timer_stop(touchpad_timer);
     }
@@ -225,8 +227,13 @@ static mp_obj_t machine_touchpad_irq(size_t n_args, const mp_obj_t *pos_args, mp
         touch_pad_set_thresh(self->touchpad_id, threshold);
         // touch_pad_isr_deregister()
         if (is_touchpad_intr_enabled == false) {
+            #if CONFIG_IDF_TARGET_ESP32
             touch_pad_isr_register(machine_touchpad_isr_handler, NULL);
             touch_pad_intr_enable();
+            #elif CONFIG_IDF_TARGET_ESP32S3
+            touch_pad_isr_register(machine_touchpad_isr_handler, NULL, TOUCH_PAD_INTR_MASK_ALL);
+            touch_pad_intr_enable(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE | TOUCH_PAD_INTR_MASK_TIMEOUT);        
+            #endif   
             is_touchpad_intr_enabled = true;
             is_touchpad_all_released = true;
 
@@ -261,6 +268,6 @@ MP_DEFINE_CONST_OBJ_TYPE(
     locals_dict, &mtp_locals_dict
     );
 
-MP_REGISTER_ROOT_POINTER(mp_obj_t *machine_touchpad_irq_handler[10]);
+MP_REGISTER_ROOT_POINTER(mp_obj_t *machine_touchpad_irq_handler[TOUCHPAD_NUM]);
 
 #endif

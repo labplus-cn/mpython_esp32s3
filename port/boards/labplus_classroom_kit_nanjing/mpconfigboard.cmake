@@ -49,6 +49,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
         ${ADF_PATH}/components/audio_sal
         ${ADF_PATH}/components/esp-adf-libs
         ${ADF_PATH}/components/esp-sr
+        ${ADF_PATH}/components/audio_recorder
         ${MPY_PORT_DIR}/boards/labplus_classroom_kit_nanjing/audio
         )
 
