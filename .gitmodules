@@ -7,6 +7,3 @@
 [submodule "esp-idf"]
 	path = esp-idf
 	url = git@github.com:labplus-cn/esp-idf-v5.0.4.git
-[submodule "esp-adf"]
-	path = esp-adf
-	url = git@github.com:labplus-cn/esp-adf.git
