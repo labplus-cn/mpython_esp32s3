@@ -147,6 +147,16 @@ list(APPEND IDF_COMPONENTS
     vfs
 )
 
+# set(USE_ESP_ADF ON)
+# if(CONFIG_LABPLUS_CLASSROOM_KIT_NANJING_BOARD)
+    list(APPEND IDF_COMPONENTS 
+    audio_stream
+    audio_hal
+    audio)
+    MESSAGE( STATUS "hello,world")
+# endif()
+
+MESSAGE( STATUS "IDF_COMPONENTS = ${IDF_COMPONENTS}, USE_ESP_ADF = ${USE_ESP_ADF}, MP_BOARD = ${MICROPY_BOARD}")
 # Register the main IDF component.
 idf_component_register(
     SRCS

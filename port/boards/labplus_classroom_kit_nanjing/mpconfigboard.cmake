@@ -37,8 +37,6 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/builtins/mod_audio/audio_recorder.c 
     ${MPY_PORT_DIR}/builtins/mod_audio/vfs_stream.c 
     ${MPY_PORT_DIR}/builtins/mod_audio/modaudio.c 
-    # ${MPY_PORT_DIR}/builtins/modtts.c
-    # ${MPY_PORT_DIR}/builtins/modasr.c
 )
 
 set(MICROPY_SOURCE_BOARD_DIR
@@ -46,34 +44,31 @@ set(MICROPY_SOURCE_BOARD_DIR
     ${MPY_PORT_DIR}/lib
     ${MPY_PORT_DIR}/builtins
     ${MPY_PORT_DIR}/boards/labplus_classroom_kit_nanjing/audio
-    ${ADF_COMPS}/esp-adf-libs/esp_audio/include
-    ${ADF_COMPS}/esp-adf-libs/esp_codec/include/codec
-    ${ADF_COMPS}/esp-adf-libs/esp_codec/include/processing
-    ${ADF_COMPS}/esp-adf-libs/media_lib_sal/include
-    ${ADF_COMPS}/esp-adf-libs/media_lib_sal/include/port
-    ${ADF_COMPS}/esp-adf-libs/esp_muxer/include
-    ${ADF_COMPS}/audio_pipeline/include
-    ${ADF_COMPS}/audio_sal/include
-    ${ADF_COMPS}/audio_stream/include
-    ${ADF_COMPS}/audio_recorder/include
-    ${ADF_COMPS}/esp-sr/src/include
-    ${ADF_COMPS}/esp-sr/esp-tts/esp_tts_chinese/include
-    # if(IDF_TARGET STREQUAL "esp32")
-    ${ADF_COMPS}/esp-sr/include/esp32
-    # elseif(IDF_TARGET STREQUAL "esp32s3")
-    # ${ADF_COMPS}/esp-sr/include/esp32s3
-    # endif()
-    ${ADF_COMPS}/audio_recorder/include
-    ${ADF_COMPS}/audio_hal/include
 )
 
+# if(CONFIG_LABPLUS_CLASSROOM_KIT_NANJING_BOARD)
+set(ADF_COMPONENTS 
+    ${MPY_PORT_DIR}/adf_components/adf_utils
+    ${MPY_PORT_DIR}/adf_components/audio_board
+    ${MPY_PORT_DIR}/adf_components/audio_hal
+    ${MPY_PORT_DIR}/adf_components/audio_pipeline
+    ${MPY_PORT_DIR}/adf_components/audio_recorder
+    ${MPY_PORT_DIR}/adf_components/audio_sal
+    ${MPY_PORT_DIR}/adf_components/audio_stream
+    ${MPY_PORT_DIR}/adf_components/clouds
+    ${MPY_PORT_DIR}/adf_components/display_service
+    ${MPY_PORT_DIR}/adf_components/dueros_service
+    ${MPY_PORT_DIR}/adf_components/esp_actions
+    ${MPY_PORT_DIR}/adf_components/esp_dispatcher
+    ${MPY_PORT_DIR}/adf_components/esp_peripherals
+    ${MPY_PORT_DIR}/adf_components/esp-adf-libs
+    ${MPY_PORT_DIR}/adf_components/esp-sr 
+    ${MPY_PORT_DIR}/adf_components/tone_partition 
+    ${MPY_PORT_DIR}/adf_components/wifi_service)
+# endif()
+
 list(APPEND EXTRA_COMPONENT_DIRS
-        ${ADF_PATH}/components/audio_pipeline
-        ${ADF_PATH}/components/audio_sal
-        ${ADF_PATH}/components/esp-adf-libs
-        ${ADF_PATH}/components/esp-sr
-        ${ADF_PATH}/components/audio_recorder
-        ${MPY_PORT_DIR}/boards/labplus_classroom_kit_nanjing/audio
-        )
+    ${ADF_COMPONENTS}
+    ${MPY_PORT_DIR}/boards/labplus_classroom_kit_nanjing/audio)
 
 set(MICROPY_FROZEN_MANIFEST ${MICROPY_BOARD_DIR}/manifest.py)
