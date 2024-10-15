@@ -71,14 +71,14 @@ i2c_bus_handle_t i2c_bus_create(i2c_port_t port, i2c_config_t *conf)
     i2c_bus[port]->i2c_conf = *conf;
     i2c_bus[port]->i2c_port = port;
     i2c_bus[port]->ref_count++;
-    esp_err_t ret = i2c_param_config(i2c_bus[port]->i2c_port, &i2c_bus[port]->i2c_conf);
-    if (ret != ESP_OK) {
-        goto error;
-    }
-    ret = i2c_driver_install(i2c_bus[port]->i2c_port, i2c_bus[port]->i2c_conf.mode, ESP_I2C_MASTER_BUF_LEN, ESP_I2C_MASTER_BUF_LEN, ESP_INTR_FLG_DEFAULT);
-    if (ret != ESP_OK) {
-        goto error;
-    }
+    // esp_err_t ret = i2c_param_config(i2c_bus[port]->i2c_port, &i2c_bus[port]->i2c_conf);
+    // if (ret != ESP_OK) {
+    //     goto error;
+    // }
+    // ret = i2c_driver_install(i2c_bus[port]->i2c_port, i2c_bus[port]->i2c_conf.mode, ESP_I2C_MASTER_BUF_LEN, ESP_I2C_MASTER_BUF_LEN, ESP_INTR_FLG_DEFAULT);
+    // if (ret != ESP_OK) {
+    //     goto error;
+    // }
     i2c_bus[port]->bus_lock = mutex_create();
     if (i2c_bus[port]->bus_lock == NULL) {
         goto error;
@@ -176,7 +176,7 @@ esp_err_t i2c_bus_delete(i2c_bus_handle_t bus)
     I2C_BUS_CHECK(bus != NULL, "Handle error", ESP_FAIL);
     i2c_bus_t *p_bus = (i2c_bus_t *) bus;
     if (--p_bus->ref_count == 0) {
-        i2c_driver_delete(p_bus->i2c_port);
+        // i2c_driver_delete(p_bus->i2c_port);
         i2c_bus[p_bus->i2c_port] = NULL;
         mutex_destroy(p_bus->bus_lock);
         audio_free(p_bus);

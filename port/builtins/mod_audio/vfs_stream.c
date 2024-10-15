@@ -174,7 +174,7 @@ static esp_err_t _vfs_open(audio_element_handle_t self)
         //     }
         vfs->vfs_stream_obj = file_open(uri, "r");
         if(vfs->vfs_stream_obj){
-
+            ESP_LOGE(TAG, "File uri: %s", uri);
         } else {
             ESP_LOGE(TAG, "failed to open %s", uri);
             return ESP_FAIL;
