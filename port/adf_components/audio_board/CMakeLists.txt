@@ -152,4 +152,13 @@ set(COMPONENT_SRCS
 )
 endif()
 
+if (CONFIG_LABPLUS_LEDONG_PSRAM_BOARD)
+message(STATUS "Current board name is " CONFIG_LABPLUS_LEDONG_PSRAM_BOARD)
+list(APPEND COMPONENT_ADD_INCLUDEDIRS ./labplus_Ledong_psram)
+set(COMPONENT_SRCS
+./labplus_Ledong_psram/board.c
+./labplus_Ledong_psram/board_pins_config.c
+)
+endif()
+
 register_component()

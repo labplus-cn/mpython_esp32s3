@@ -1,0 +1,30 @@
+{
+    "deploy": [
+        "../deploy.md"
+    ],
+    "docs": "",
+    "features": [
+        "BLE",
+        "OLED Display",
+        "External Flash",
+        "External PSRAM",
+        "A B button",
+        "P Y T H O N touchpad",
+        "External cddec",
+        "RGG",
+        "buzzer",
+        "9 axex",
+        "sound",
+        "light",
+        "WiFi",
+        "bluetooth"
+    ],
+    "images": [
+        "classroot_kit.jpg"
+    ],
+    "mcu": "esp32",
+    "product": "classroot_kit",
+    "thumbnail": "",
+    "url": "https://github.com/labplus-cn",
+    "vendor": "labplus"
+}
