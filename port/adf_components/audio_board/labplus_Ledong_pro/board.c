@@ -22,29 +22,45 @@
  *
  */
 
-#ifndef _AUDIO_BOARD_DEFINITION_H_
-#define _AUDIO_BOARD_DEFINITION_H_
+#include "esp_log.h"
+#include "board.h"
+#include "audio_mem.h"
 
-/**
- * @brief Audio Codec Chip Function Definition
- */
-#define CODEC_ADC_I2S_PORT        (0)
-#define CODEC_ADC_BITS_PER_SAMPLE (16) /* 16bit */
-#define CODEC_ADC_SAMPLE_RATE     (48000)
-#define RECORD_HARDWARE_AEC       (false)
-#define BOARD_PA_GAIN             (10) /* Power amplifier gain defined by board (dB) */
+static const char *TAG = "AUDIO_BOARD";
 
-extern audio_hal_func_t AUDIO_CODEC_ES8388_DEFAULT_HANDLE;
-#define AUDIO_CODEC_DEFAULT_CONFIG(){                   \
-        .adc_input  = AUDIO_HAL_ADC_INPUT_LINE1,        \
-        .dac_output = AUDIO_HAL_DAC_OUTPUT_ALL,         \
-        .codec_mode = AUDIO_HAL_CODEC_MODE_BOTH,        \
-        .i2s_iface = {                                  \
-            .mode = AUDIO_HAL_MODE_SLAVE,               \
-            .fmt = AUDIO_HAL_I2S_NORMAL,                \
-            .samples = AUDIO_HAL_48K_SAMPLES,           \
-            .bits = AUDIO_HAL_BIT_LENGTH_16BITS,        \
-        },                                              \
-};
+static audio_board_handle_t board_handle = 0;
 
-#endif
+audio_board_handle_t audio_board_init(void)
+{
+    if (board_handle) {
+        ESP_LOGW(TAG, "The board has already been initialized!");
+        return board_handle;
+    }
+    board_handle = (audio_board_handle_t) audio_calloc(1, sizeof(struct audio_board_handle));
+    AUDIO_MEM_CHECK(TAG, board_handle, return NULL);
+    board_handle->audio_hal = audio_board_codec_init();
+
+    return board_handle;
+}
+
+audio_hal_handle_t audio_board_codec_init(void)
+{
+    audio_hal_codec_config_t audio_codec_cfg = AUDIO_CODEC_DEFAULT_CONFIG();
+    audio_hal_handle_t codec_hal = audio_hal_init(&audio_codec_cfg, &AUDIO_CODEC_ES8388_DEFAULT_HANDLE);
+    AUDIO_NULL_CHECK(TAG, codec_hal, return NULL);
+    return codec_hal;
+}
+
+audio_board_handle_t audio_board_get_handle(void)
+{
+    return board_handle;
+}
+
+esp_err_t audio_board_deinit(audio_board_handle_t audio_board)
+{
+    esp_err_t ret = ESP_OK;
+    ret = audio_hal_deinit(audio_board->audio_hal);
+    audio_free(audio_board);
+    board_handle = NULL;
+    return ret;
+}

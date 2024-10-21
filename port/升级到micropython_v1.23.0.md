@@ -186,7 +186,7 @@ linux系统按乐鑫要求安装一些库，安装gcc cmake
     ```bash
     cd port
     idf.py -D MICROPY_BOARD=labplus_classroom_kit_nanjing build
-    idf.py -D MICROPY_BOARD=labplus_Ledong build
+    idf.py -D MICROPY_BOARD=labplus_Ledong_pro build
     idf.py -D MICROPY_BOARD=mpython build
     ```
 
@@ -212,7 +212,7 @@ linux系统按乐鑫要求安装一些库，安装gcc cmake
     usbipd bind --busid <busid> # bind ID，eg:4-4
     usbipd attach --wsl --busid <busid> # 附加USB设备到wsl
     lsusb # wsl下，查看USB设备是否附加。
-    usbipd attach --wsl --busid <busid> # 解除附加USB设备到wsl
+    usbipd detach --busid <busid> # 解除附加USB设备到wsl
 
 6. python库调试
 

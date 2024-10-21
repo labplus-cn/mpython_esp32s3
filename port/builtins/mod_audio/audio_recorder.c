@@ -40,7 +40,7 @@
 #include "amrnb_encoder.h"
 #include "wav_encoder.h"
 
-#include "board_init.h"
+#include "board.h"
 
 #include "mpconfigboard.h"
 
@@ -141,9 +141,13 @@ static audio_element_handle_t audio_recorder_create_outstream(const char *uri)
     } else if (strstr(uri, "/spiffs/") != NULL) {
         // TODO: spiffs
     } else {
-        raw_stream_cfg_t raw_cfg = RAW_STREAM_CFG_DEFAULT();
-        raw_cfg.type = AUDIO_STREAM_WRITER;
-        out_stream = raw_stream_init(&raw_cfg);
+        // raw_stream_cfg_t raw_cfg = RAW_STREAM_CFG_DEFAULT();
+        // raw_cfg.type = AUDIO_STREAM_WRITER;
+        // out_stream = raw_stream_init(&raw_cfg);
+        vfs_stream_cfg_t vfs_cfg = VFS_STREAM_CFG_DEFAULT();
+        vfs_cfg.type = AUDIO_STREAM_WRITER;
+        vfs_cfg.task_core = 1;
+        out_stream = vfs_stream_init(&vfs_cfg);
     }
     audio_element_set_uri(out_stream, uri);
 
@@ -153,7 +157,7 @@ static audio_element_handle_t audio_recorder_create_outstream(const char *uri)
 static void audio_recorder_create(audio_recorder_obj_t *self, const char *uri, int format)
 {
     // init audio board
-    board_codec_init();
+    audio_board_codec_init();
 
     // pipeline
     audio_pipeline_cfg_t pipeline_cfg = DEFAULT_AUDIO_PIPELINE_CONFIG();

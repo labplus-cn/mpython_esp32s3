@@ -46,7 +46,7 @@
 #define I2C_MASTER_SCL_IO                  34               
 #define I2C_MASTER_SDA_IO                  35
 #endif
-#define I2C_MASTER_NUM                     I2C_NUM_1       /*!< I2C port number for master dev */
+#define I2C_MASTER_NUM                     I2C_NUM_0       /*!< I2C port number for master dev */
 #define I2C_MASTER_TX_BUF_DISABLE          0                /*!< I2C master do not need buffer */
 #define I2C_MASTER_RX_BUF_DISABLE          0                /*!< I2C master do not need buffer */
 #define I2C_MASTER_FREQ_HZ                 400000           /*!< I2C master clock frequency */

@@ -1,5 +1,6 @@
 # 本文件会被顶层CMakeList.txt包含
 # 可以在本文件定义一些板级源文件及目录
+set(IDF_TARGET esp32)
 
 set(SDKCONFIG_DEFAULTS
     boards/sdkconfig.base
@@ -43,32 +44,31 @@ set(MICROPY_SOURCE_BOARD_DIR
     ${MPY_PORT_DIR}/drivers
     ${MPY_PORT_DIR}/lib
     ${MPY_PORT_DIR}/builtins
-    ${MPY_PORT_DIR}/boards/labplus_classroom_kit_nanjing/audio
 )
 
 # if(CONFIG_LABPLUS_CLASSROOM_KIT_NANJING_BOARD)
 set(ADF_COMPONENTS 
-    ${MPY_PORT_DIR}/adf_components/adf_utils
+    # ${MPY_PORT_DIR}/adf_components/adf_utils
     ${MPY_PORT_DIR}/adf_components/audio_board
     ${MPY_PORT_DIR}/adf_components/audio_hal
     ${MPY_PORT_DIR}/adf_components/audio_pipeline
     ${MPY_PORT_DIR}/adf_components/audio_recorder
     ${MPY_PORT_DIR}/adf_components/audio_sal
     ${MPY_PORT_DIR}/adf_components/audio_stream
-    ${MPY_PORT_DIR}/adf_components/clouds
-    ${MPY_PORT_DIR}/adf_components/display_service
-    ${MPY_PORT_DIR}/adf_components/dueros_service
-    ${MPY_PORT_DIR}/adf_components/esp_actions
-    ${MPY_PORT_DIR}/adf_components/esp_dispatcher
-    ${MPY_PORT_DIR}/adf_components/esp_peripherals
+    # ${MPY_PORT_DIR}/adf_components/clouds
+    # ${MPY_PORT_DIR}/adf_components/display_service
+    # ${MPY_PORT_DIR}/adf_components/dueros_service
+    # ${MPY_PORT_DIR}/adf_components/esp_actions
+    # ${MPY_PORT_DIR}/adf_components/esp_dispatcher
+    # ${MPY_PORT_DIR}/adf_components/esp_peripherals
     ${MPY_PORT_DIR}/adf_components/esp-adf-libs
     ${MPY_PORT_DIR}/adf_components/esp-sr 
-    ${MPY_PORT_DIR}/adf_components/tone_partition 
-    ${MPY_PORT_DIR}/adf_components/wifi_service)
+    # ${MPY_PORT_DIR}/adf_components/tone_partition 
+    # ${MPY_PORT_DIR}/adf_components/wifi_service
+    )
 # endif()
 
 list(APPEND EXTRA_COMPONENT_DIRS
-    ${ADF_COMPONENTS}
-    ${MPY_PORT_DIR}/boards/labplus_classroom_kit_nanjing/audio)
+    ${ADF_COMPONENTS})
 
 set(MICROPY_FROZEN_MANIFEST ${MICROPY_BOARD_DIR}/manifest.py)

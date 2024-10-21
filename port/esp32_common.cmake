@@ -152,8 +152,7 @@ list(APPEND IDF_COMPONENTS
     list(APPEND IDF_COMPONENTS 
     audio_stream
     audio_hal
-    audio)
-    MESSAGE( STATUS "hello,world")
+    audio_board)
 # endif()
 
 MESSAGE( STATUS "IDF_COMPONENTS = ${IDF_COMPONENTS}, USE_ESP_ADF = ${USE_ESP_ADF}, MP_BOARD = ${MICROPY_BOARD}")

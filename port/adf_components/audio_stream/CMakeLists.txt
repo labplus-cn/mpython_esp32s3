@@ -3,7 +3,7 @@ set(COMPONENT_SRCS "fatfs_stream.c"
                     "http_playlist.c"
                     "raw_stream.c"
                     "spiffs_stream.c"
-                    "tone_stream.c"
+                    # "tone_stream.c"
                     "tcp_client_stream.c"
                     "embed_flash_stream.c"
                     "pwm_stream.c"
@@ -25,7 +25,7 @@ endif()
 
 list(APPEND COMPONENT_SRCS  "lib/gzip/gzip_miniz.c")
 
-set(COMPONENT_REQUIRES audio_pipeline driver audio_sal esp_http_client tcp_transport spiffs audio_board esp-adf-libs bootloader_support esp_dispatcher esp_actions tone_partition mbedtls)
+set(COMPONENT_REQUIRES audio_pipeline driver audio_sal esp_http_client tcp_transport spiffs spi_flash audio_board esp-adf-libs bootloader_support  mbedtls)
 
 if((${IDF_TARGET} STREQUAL "esp32") OR (${IDF_TARGET} STREQUAL "esp32s3") OR (${IDF_TARGET} STREQUAL "esp32p4"))
     list(APPEND COMPONENT_SRCS "algorithm_stream.c" "tts_stream.c")

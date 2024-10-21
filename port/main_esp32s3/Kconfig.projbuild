@@ -2,13 +2,13 @@ menu "mpython board"
 
 choice MPYTHON_BOARD
     prompt "mpython board"
-    default LABPLUS_LEDONG_PRO_V1_0_BOARD
+    default LABPLUS_LEDONG_PRO_BOARD
     help
         Select an mpython board to use in micropython
 config AUDIO_BOARD_CUSTOM
     bool "Custom mpython board"
-config LABPLUS_LEDONG_PRO_V1_0_BOARD
-    bool "labplus Ledong pro V1.0"
+config LABPLUS_LEDONG_PRO_BOARD
+    bool "labplus Ledong pro"
     depends on IDF_TARGET_ESP32S3
 
 endchoice

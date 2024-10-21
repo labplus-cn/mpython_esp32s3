@@ -1,34 +1,16 @@
+# 本文件会被顶层CMakeList.txt包含
+# 可以在本文件定义一些板级源文件及目录
 set(IDF_TARGET esp32s3)
 
 set(SDKCONFIG_DEFAULTS
     boards/sdkconfig.base
     ${SDKCONFIG_IDF_VERSION_SPECIFIC}
-    boards/labplus_Ledong_pro/sdkconfig.usb
-    boards/sdkconfig.ble
+    boards/sdkconfig.ble 
     boards/sdkconfig.240mhz
-    # boards/sdkconfig.spiram
-    boards/labplus_Ledong_pro/sdkconfig.spiram_sx
+    boards/labplus_Ledong_pro/sdkconfig.spiram 
     boards/labplus_Ledong_pro/sdkconfig.board
+    boards/labplus_Ledong_pro/sdkconfig.usb
 )
-
-if(MICROPY_BOARD_VARIANT STREQUAL "SPIRAM_OCT")
-    set(SDKCONFIG_DEFAULTS
-        ${SDKCONFIG_DEFAULTS}
-        boards/sdkconfig.240mhz
-        boards/sdkconfig.spiram_oct
-    )
-
-    list(APPEND MICROPY_DEF_BOARD
-        MICROPY_HW_BOARD_NAME="Generic ESP32S3 module with Octal-SPIRAM"
-    )
-endif()
-
-if(MICROPY_BOARD_VARIANT STREQUAL "FLASH_4M")
-    set(SDKCONFIG_DEFAULTS
-        ${SDKCONFIG_DEFAULTS}
-        boards/ESP32_GENERIC_S3/sdkconfig.flash_4m
-    )
-endif()
 
 if(NOT MPY_PORT_DIR)
     get_filename_component(MPY_PORT_DIR ${CMAKE_CURRENT_LIST_DIR}/../.. ABSOLUTE)
@@ -53,21 +35,41 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/builtins/machine_pin.c
     ${MPY_PORT_DIR}/builtins/machine_touchpad.c
     ${MPY_PORT_DIR}/builtins/modframebuf.c
+    ${MPY_PORT_DIR}/builtins/mod_audio/audio_player.c
+    ${MPY_PORT_DIR}/builtins/mod_audio/audio_recorder.c 
+    ${MPY_PORT_DIR}/builtins/mod_audio/vfs_stream.c 
+    ${MPY_PORT_DIR}/builtins/mod_audio/modaudio.c 
 )
 
 set(MICROPY_SOURCE_BOARD_DIR
     ${MPY_PORT_DIR}/drivers
     ${MPY_PORT_DIR}/lib
     ${MPY_PORT_DIR}/builtins
-    ${MPY_PORT_DIR}/boards/labplus_Ledong_pro/audio
 )
 
+# if(CONFIG_LABPLUS_CLASSROOM_KIT_NANJING_BOARD)
+set(ADF_COMPONENTS 
+    # ${MPY_PORT_DIR}/adf_components/adf_utils
+    ${MPY_PORT_DIR}/adf_components/audio_board
+    ${MPY_PORT_DIR}/adf_components/audio_hal
+    ${MPY_PORT_DIR}/adf_components/audio_pipeline
+    ${MPY_PORT_DIR}/adf_components/audio_recorder
+    ${MPY_PORT_DIR}/adf_components/audio_sal
+    ${MPY_PORT_DIR}/adf_components/audio_stream
+    # ${MPY_PORT_DIR}/adf_components/clouds
+    # ${MPY_PORT_DIR}/adf_components/display_service
+    # ${MPY_PORT_DIR}/adf_components/dueros_service
+    # ${MPY_PORT_DIR}/adf_components/esp_actions
+    # ${MPY_PORT_DIR}/adf_components/esp_dispatcher
+    # ${MPY_PORT_DIR}/adf_components/esp_peripherals
+    ${MPY_PORT_DIR}/adf_components/esp-adf-libs
+    ${MPY_PORT_DIR}/adf_components/esp-sr 
+    # ${MPY_PORT_DIR}/adf_components/tone_partition 
+    # ${MPY_PORT_DIR}/adf_components/wifi_service
+    )
+# endif()
+
 list(APPEND EXTRA_COMPONENT_DIRS
-        ${ADF_PATH}/components/audio_pipeline
-        ${ADF_PATH}/components/audio_sal
-        ${ADF_PATH}/components/esp-adf-libs
-        ${ADF_PATH}/components/esp-sr
-        ${MPY_PORT_DIR}/boards/labplus_Ledong_pro/audio
-        )
+    ${ADF_COMPONENTS})
 
 set(MICROPY_FROZEN_MANIFEST ${MICROPY_BOARD_DIR}/manifest.py)
