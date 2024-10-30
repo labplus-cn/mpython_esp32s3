@@ -52,39 +52,47 @@ class PinMode(object):
     PWM = 3
     ANALOG = 4
     OUT_DRAIN = 5
-
-pins_remap_esp32 = (1, 2, 3, 4, 5, 0, 7, 8, 15, 16, 6, 46, 21, 17, 18, 48, 47, -1, -1, 34, 35, -1, -1, 9, 10, 11, 12, 13, 14)
+# P4: light P5: A P10: sound P11: B P12: buzzer P21: RGB LED
+#                   P0 P1 P2 P3 P4 P5 P6 P7 P8  P9 P10 P11 P12 P13 P14 P15 P16        P19  P20 P21    P23 P24 P25 P26 P27 P28
+#                               *  *                *  *   *                          scl  sda *       P  Y   T   H   O   N
+pins_remap_esp32 = (1, 2, 3, 4, 5, 0, 7, 8, 15, 16, 6, 46, 21, 17, 18, 48, 47, -1, -1, 34, 35, 33, -1, 9, 10, 11, 12, 13, 14)
 
 class MPythonPin():
     def __init__(self, pin, mode=PinMode.IN, pull=None):
         if mode not in [PinMode.IN, PinMode.OUT, PinMode.PWM, PinMode.ANALOG, PinMode.OUT_DRAIN]:
             raise TypeError("mode must be 'IN, OUT, PWM, ANALOG,OUT_DRAIN'")
         if pin == 4:
-            raise TypeError("P4 is used for light sensor")
+            raise TypeError("P4 is used for internal light sensor")
         if pin == 10:
-            raise TypeError("P10 is used for sound sensor")
+            raise TypeError("P10 is used for internalsound sensor")
+        if pin == 5 or pin == 11:
+            raise TypeError("P5 or P11 is used for internal A B key.")
+        if pin == 21:
+            raise TypeError("P21 is used for internal RGB LED.")
+        if pin == 12:
+            raise TypeError("P12 is used for internal buzzer.")
         try:
             self.id = pins_remap_esp32[pin]
         except IndexError:
             raise IndexError("Out of Pin range")
         if mode == PinMode.IN:
-            # if pin in [3]:
-            #     raise TypeError('IN not supported on P%d' % pin)
+            if pin not in [0, 1, 2, 3, 6, 7, 8, 9, 13, 14, 15, 16]:
+                raise TypeError('IN not supported on P%d' % pin)
             self.Pin = Pin(self.id, Pin.IN, pull)
         if mode == PinMode.OUT:
-            # if pin in [2, 3]:
-            #     raise TypeError('OUT not supported on P%d' % pin)
+            if pin not in [0, 1, 2, 3, 6, 7, 8, 9, 13, 14, 15, 16]:
+                raise TypeError('OUT not supported on P%d' % pin)
             self.Pin = Pin(self.id, Pin.OUT, pull)
         if mode == PinMode.OUT_DRAIN:
-            # if pin in [2, 3]:
-            #     raise TypeError('OUT_DRAIN not supported on P%d' % pin)
+            if pin not in [0, 1, 2, 3, 6, 7, 8, 9, 13, 14, 15, 16]:
+                raise TypeError('OUT_DRAIN not supported on P%d' % pin)
             self.Pin = Pin(self.id, Pin.OPEN_DRAIN, pull)
         if mode == PinMode.PWM:
-            # if pin not in [0, 1, 5, 6, 7, 8, 9, 11, 13, 14, 15, 16, 19, 20, 23, 24, 25, 26, 27, 28]:
-            #     raise TypeError('PWM not supported on P%d' % pin)
+            if pin not in [0, 1, 2, 3, 6, 7, 8, 9, 13, 14, 15, 16]:
+                raise TypeError('PWM not supported on P%d' % pin)
             self.pwm = PWM(Pin(self.id), duty=0)
         if mode == PinMode.ANALOG:
-            if pin not in [0, 1, 2, 3, 4, 5, 6, 7, 10]:
+            if pin not in [0, 1, 2, 3, 6, 7]:
                 raise TypeError('ANALOG not supported on P%d' % pin)
             self.adc = ADC(Pin(self.id))
             self.adc.atten(ADC.ATTN_11DB)
@@ -185,7 +193,7 @@ class wifi:
         print('disable AP WiFi...')
 
 # 3 rgb leds
-rgb = NeoPixel(Pin(33, Pin.OUT), 4, 3, 1, brightness=0.3)
+rgb = NeoPixel(Pin(33, Pin.OUT), 3, 3, 1, brightness=0.3)
 rgb.write()
 
 # light sensor
@@ -324,14 +332,6 @@ class Ledong_shield(object):
         self.speed = 0 
         self.i2c = i2c
         self.i2c_addr = 17
-
-    def set_motor(self, motor_num, speed):
-        self.speed = speed
-        if self.speed > 100:
-            self.speed = 100
-        if self.speed < -100:
-            self.speed = -100
-        self.i2c.writeto(self.i2c_addr, bytearray([motor_num, self.speed]), True)
 
     def power_off(self):
         self.i2c.writeto(self.i2c_addr, b'\x06\x01', True)

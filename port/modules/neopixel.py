@@ -43,7 +43,7 @@ class NeoPixel:
             c = v[i]
             j = self.ORDER[i]
             while j < l:
-                b[j] = c * self._brightness
+                b[j] = int(c * self._brightness)
                 j += bpp
 
     def write(self):
