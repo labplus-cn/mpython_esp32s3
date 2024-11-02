@@ -133,7 +133,7 @@ esp-idf v5.0.4
     项目需要esp-idf、micrpython、esp-adf子模块，从官方fork项目，并分别checkout到v5.0.4，v1.23.0，然后在项目文件夹下执行：
 
     ```bash
-    git submodule updatee --init --recursive
+    git submodule update --init --recursive
     ```
 
     拉取所有子模块。
