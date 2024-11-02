@@ -150,7 +150,8 @@ list(APPEND IDF_COMPONENTS
 # set(USE_ESP_ADF ON)
 # if(CONFIG_LABPLUS_CLASSROOM_KIT_NANJING_BOARD)
     list(APPEND IDF_COMPONENTS 
-    audio_stream
+    # audio_stream
+    audio_sal
     audio_hal
     audio_board)
 # endif()

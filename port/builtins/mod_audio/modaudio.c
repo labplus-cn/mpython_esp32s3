@@ -29,68 +29,77 @@
 
 #include "py/objstr.h"
 #include "py/runtime.h"
+#include "codec/vfs_lfs2.h"
+#include "esp_log.h"
 
-#include "esp_audio.h"
+// #include "esp_audio.h"
 
-#include "audio_mem.h"
+// #include "audio_mem.h"
 
 const char *verno = "0.5-beta2";
 
-static mp_obj_t audio_mem_info(void)
-{
-#ifdef CONFIG_SPIRAM_BOOT_INIT
-    mp_obj_dict_t *dict = mp_obj_new_dict(3);
+// static mp_obj_t audio_mem_info(void)
+// {
+// #ifdef CONFIG_SPIRAM_BOOT_INIT
+//     mp_obj_dict_t *dict = mp_obj_new_dict(3);
 
-    mp_obj_dict_store(dict, MP_ROM_QSTR(MP_QSTR_mem_total), MP_OBJ_TO_PTR(mp_obj_new_int(esp_get_free_heap_size())));
-    mp_obj_dict_store(dict, MP_ROM_QSTR(MP_QSTR_inter), MP_OBJ_TO_PTR(mp_obj_new_int(heap_caps_get_free_size(MALLOC_CAP_INTERNAL))));
-    mp_obj_dict_store(dict, MP_ROM_QSTR(MP_QSTR_dram), MP_OBJ_TO_PTR(mp_obj_new_int(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT))));
-#else
-    mp_obj_dict_t *dict = mp_obj_new_dict(1);
-    mp_obj_dict_store(dict, MP_ROM_QSTR(MP_QSTR_mem_total), MP_OBJ_TO_PTR(mp_obj_new_int(esp_get_free_heap_size())));
-#endif
-    return dict;
-}
-static MP_DEFINE_CONST_FUN_OBJ_0(audio_mem_info_obj, audio_mem_info);
+//     mp_obj_dict_store(dict, MP_ROM_QSTR(MP_QSTR_mem_total), MP_OBJ_TO_PTR(mp_obj_new_int(esp_get_free_heap_size())));
+//     mp_obj_dict_store(dict, MP_ROM_QSTR(MP_QSTR_inter), MP_OBJ_TO_PTR(mp_obj_new_int(heap_caps_get_free_size(MALLOC_CAP_INTERNAL))));
+//     mp_obj_dict_store(dict, MP_ROM_QSTR(MP_QSTR_dram), MP_OBJ_TO_PTR(mp_obj_new_int(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT))));
+// #else
+//     mp_obj_dict_t *dict = mp_obj_new_dict(1);
+//     mp_obj_dict_store(dict, MP_ROM_QSTR(MP_QSTR_mem_total), MP_OBJ_TO_PTR(mp_obj_new_int(esp_get_free_heap_size())));
+// #endif
+//     return dict;
+// }
+// static MP_DEFINE_CONST_FUN_OBJ_0(audio_mem_info_obj, audio_mem_info);
 
-static mp_obj_t audio_mod_verno(void)
+// static mp_obj_t audio_mod_verno(void)
+// {
+//     return mp_obj_new_str(verno, strlen(verno));
+// }
+// static MP_DEFINE_CONST_FUN_OBJ_0(audio_mod_verno_obj, audio_mod_verno);
+static mp_obj_t audio_mod_lsfs2_open(size_t n_args, const mp_obj_t *args)
 {
-    return mp_obj_new_str(verno, strlen(verno));
+    vfs_lfs2_open(args[0], args[1]);
+    return mp_const_none;
 }
-static MP_DEFINE_CONST_FUN_OBJ_0(audio_mod_verno_obj, audio_mod_verno);
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_mod_lfs2_open_obj, 0, 2, audio_mod_lsfs2_open);
 
 extern const mp_obj_type_t audio_player_type;
 extern const mp_obj_type_t audio_recorder_type;
 
 static const mp_rom_map_elem_t audio_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_audio) },
-    { MP_ROM_QSTR(MP_QSTR_mem_info), MP_ROM_PTR(&audio_mem_info_obj) },
-    { MP_ROM_QSTR(MP_QSTR_verno), MP_ROM_PTR(&audio_mod_verno_obj) },
+    { MP_ROM_QSTR(MP_QSTR_lfs2_open), MP_ROM_PTR(&audio_mod_lfs2_open_obj) },
+    // { MP_ROM_QSTR(MP_QSTR_mem_info), MP_ROM_PTR(&audio_mem_info_obj) },
+    // { MP_ROM_QSTR(MP_QSTR_verno), MP_ROM_PTR(&audio_mod_verno_obj) },
 
-    { MP_ROM_QSTR(MP_QSTR_player), MP_ROM_PTR(&audio_player_type) },
-    { MP_ROM_QSTR(MP_QSTR_recorder), MP_ROM_PTR(&audio_recorder_type) },
+    // { MP_ROM_QSTR(MP_QSTR_player), MP_ROM_PTR(&audio_player_type) },
+    // { MP_ROM_QSTR(MP_QSTR_recorder), MP_ROM_PTR(&audio_recorder_type) },
 
-    // audio_err_t
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_OK), MP_ROM_INT(ESP_ERR_AUDIO_NO_ERROR) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_FAIL), MP_ROM_INT(ESP_ERR_AUDIO_FAIL) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_NO_INPUT_STREAM), MP_ROM_INT(ESP_ERR_AUDIO_NO_INPUT_STREAM) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_NO_OUTPUT_STREAM), MP_ROM_INT(ESP_ERR_AUDIO_NO_OUTPUT_STREAM) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_NO_CODEC), MP_ROM_INT(ESP_ERR_AUDIO_NO_CODEC) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_HAL_FAIL), MP_ROM_INT(ESP_ERR_AUDIO_HAL_FAIL) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_MEMORY_LACK), MP_ROM_INT(ESP_ERR_AUDIO_MEMORY_LACK) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_INVALID_URI), MP_ROM_INT(ESP_ERR_AUDIO_INVALID_URI) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_INVALID_PATH), MP_ROM_INT(ESP_ERR_AUDIO_INVALID_PATH) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_INVALID_PARAMETER), MP_ROM_INT(ESP_ERR_AUDIO_INVALID_PARAMETER) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_NOT_READY), MP_ROM_INT(ESP_ERR_AUDIO_NOT_READY) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_NOT_SUPPORT), MP_ROM_INT(ESP_ERR_AUDIO_NOT_SUPPORT) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_TIMEOUT), MP_ROM_INT(ESP_ERR_AUDIO_TIMEOUT) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_ALREADY_EXISTS), MP_ROM_INT(ESP_ERR_AUDIO_ALREADY_EXISTS) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_LINK_FAIL), MP_ROM_INT(ESP_ERR_AUDIO_LINK_FAIL) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_UNKNOWN), MP_ROM_INT(ESP_ERR_AUDIO_UNKNOWN) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_OPEN), MP_ROM_INT(ESP_ERR_AUDIO_OPEN) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_INPUT), MP_ROM_INT(ESP_ERR_AUDIO_INPUT) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_PROCESS), MP_ROM_INT(ESP_ERR_AUDIO_PROCESS) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_OUTPUT), MP_ROM_INT(ESP_ERR_AUDIO_OUTPUT) },
-    { MP_ROM_QSTR(MP_QSTR_AUDIO_CLOSE), MP_ROM_INT(ESP_ERR_AUDIO_CLOSE) },
+    // // audio_err_t
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_OK), MP_ROM_INT(ESP_ERR_AUDIO_NO_ERROR) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_FAIL), MP_ROM_INT(ESP_ERR_AUDIO_FAIL) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_NO_INPUT_STREAM), MP_ROM_INT(ESP_ERR_AUDIO_NO_INPUT_STREAM) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_NO_OUTPUT_STREAM), MP_ROM_INT(ESP_ERR_AUDIO_NO_OUTPUT_STREAM) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_NO_CODEC), MP_ROM_INT(ESP_ERR_AUDIO_NO_CODEC) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_HAL_FAIL), MP_ROM_INT(ESP_ERR_AUDIO_HAL_FAIL) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_MEMORY_LACK), MP_ROM_INT(ESP_ERR_AUDIO_MEMORY_LACK) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_INVALID_URI), MP_ROM_INT(ESP_ERR_AUDIO_INVALID_URI) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_INVALID_PATH), MP_ROM_INT(ESP_ERR_AUDIO_INVALID_PATH) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_INVALID_PARAMETER), MP_ROM_INT(ESP_ERR_AUDIO_INVALID_PARAMETER) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_NOT_READY), MP_ROM_INT(ESP_ERR_AUDIO_NOT_READY) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_NOT_SUPPORT), MP_ROM_INT(ESP_ERR_AUDIO_NOT_SUPPORT) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_TIMEOUT), MP_ROM_INT(ESP_ERR_AUDIO_TIMEOUT) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_ALREADY_EXISTS), MP_ROM_INT(ESP_ERR_AUDIO_ALREADY_EXISTS) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_LINK_FAIL), MP_ROM_INT(ESP_ERR_AUDIO_LINK_FAIL) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_UNKNOWN), MP_ROM_INT(ESP_ERR_AUDIO_UNKNOWN) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_OPEN), MP_ROM_INT(ESP_ERR_AUDIO_OPEN) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_INPUT), MP_ROM_INT(ESP_ERR_AUDIO_INPUT) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_PROCESS), MP_ROM_INT(ESP_ERR_AUDIO_PROCESS) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_OUTPUT), MP_ROM_INT(ESP_ERR_AUDIO_OUTPUT) },
+    // { MP_ROM_QSTR(MP_QSTR_AUDIO_CLOSE), MP_ROM_INT(ESP_ERR_AUDIO_CLOSE) },
 };
 
 static MP_DEFINE_CONST_DICT(audio_module_globals, audio_module_globals_table);
