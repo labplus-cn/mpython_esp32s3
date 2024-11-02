@@ -25,6 +25,7 @@ set(ADF_COMPS ${ADF_PATH}/components)
 set(MICROPY_SOURCE_BOARD
     ${MICROPY_BOARD_DIR}/main.c
     ${MPY_PORT_DIR}/drivers/codec/vfs_lfs2.c
+    ${MPY_PORT_DIR}/drivers/codec/vfs_fatfs.c
     ${MPY_PORT_DIR}/drivers/startup/00030.c
     ${MPY_PORT_DIR}/drivers/startup/i2c_master.c
     ${MPY_PORT_DIR}/drivers/startup/oled.c

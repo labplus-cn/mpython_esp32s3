@@ -22,43 +22,17 @@
  *
  */
 
-#ifndef _VFS_LFS2_H_
-#define _VFS_LFS2_H_
+#ifndef _VFS_FATFS_H_
+#define _VFS_FATFS_H_
 
 #include "esp_err.h"
-#include "py/runtime.h"
-#include "lib/littlefs/lfs2.h"
-#include "extmod/vfs.h"
-#include "py/stream.h"
-#include "py/builtin.h"
-
+#include "py/obj.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct _mp_obj_vfs_lfs2_t {
-    mp_obj_base_t base;
-    mp_vfs_blockdev_t blockdev;
-    bool enable_mtime;
-    vstr_t cur_dir;
-    struct lfs2_config config;
-    lfs2_t lfs;
-} mp_obj_vfs_lfs2_t;
-
-typedef struct _mp_obj_vfs_lfs2_file_t {
-    mp_obj_base_t base;
-    mp_obj_vfs_lfs2_t *vfs;
-    uint8_t mtime[8];
-    lfs2_file_t file;
-    struct lfs2_file_config cfg;
-    struct lfs2_attr attrs[1];
-    uint8_t file_buffer[0];
-} mp_obj_vfs_lfs2_file_t;
-
-esp_err_t vfs_lfs2_file_open(mp_obj_t path_in, mp_obj_t mode_in);
-
-extern mp_obj_vfs_lfs2_t *mp_obj_lfs2;
-extern mp_obj_vfs_lfs2_file_t *mp_obj_lfs2_file;
+esp_err_t vfs_fat_file_open(mp_obj_t path_in, mp_obj_t mode_in);
+void vfs_fat_file_close(void);
 
 #ifdef __cplusplus
 }

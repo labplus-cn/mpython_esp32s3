@@ -29,8 +29,9 @@
 
 #include "py/objstr.h"
 #include "py/runtime.h"
-#include "codec/vfs_lfs2.h"
 #include "esp_log.h"
+#include "codec/vfs_lfs2.h"
+#include "codec/vfs_fatfs.h"
 
 // #include "esp_audio.h"
 
@@ -61,7 +62,8 @@ const char *verno = "0.5-beta2";
 // static MP_DEFINE_CONST_FUN_OBJ_0(audio_mod_verno_obj, audio_mod_verno);
 static mp_obj_t audio_mod_lsfs2_open(size_t n_args, const mp_obj_t *args)
 {
-    vfs_lfs2_open(args[0], args[1]);
+    // vfs_lfs2_file_open(args[0], args[1]);
+    vfs_fat_file_open(args[0], args[1]);
     return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_mod_lfs2_open_obj, 0, 2, audio_mod_lsfs2_open);
