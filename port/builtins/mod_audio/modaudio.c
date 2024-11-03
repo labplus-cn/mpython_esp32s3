@@ -30,8 +30,8 @@
 #include "py/objstr.h"
 #include "py/runtime.h"
 #include "esp_log.h"
-#include "codec/vfs_lfs2.h"
-#include "codec/vfs_fatfs.h"
+#include "vfs_lfs2.h"
+#include "vfs_fatfs.h"
 
 // #include "esp_audio.h"
 

@@ -24,8 +24,12 @@ set(ADF_COMPS ${ADF_PATH}/components)
 
 set(MICROPY_SOURCE_BOARD
     ${MICROPY_BOARD_DIR}/main.c
-    ${MPY_PORT_DIR}/drivers/codec/vfs_lfs2.c
-    ${MPY_PORT_DIR}/drivers/codec/vfs_fatfs.c
+    ${MICROPY_BOARD_DIR}/bsp_audio_board.c
+    ${MPY_PORT_DIR}/drivers/audio/vfs_lfs2.c
+    ${MPY_PORT_DIR}/drivers/audio/vfs_fatfs.c
+    ${MPY_PORT_DIR}/drivers/audio/wav_decoder.c
+    ${MPY_PORT_DIR}/drivers/audio/audio.c
+    ${MPY_PORT_DIR}/drivers/audio/player.c
     ${MPY_PORT_DIR}/drivers/startup/00030.c
     ${MPY_PORT_DIR}/drivers/startup/i2c_master.c
     ${MPY_PORT_DIR}/drivers/startup/oled.c
@@ -37,42 +41,45 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/builtins/machine_pin.c
     ${MPY_PORT_DIR}/builtins/machine_touchpad.c
     ${MPY_PORT_DIR}/builtins/modframebuf.c
+    ${MPY_PORT_DIR}/builtins/modaudio.c
     # ${MPY_PORT_DIR}/builtins/mod_audio/audio_player.c
     # ${MPY_PORT_DIR}/builtins/mod_audio/audio_recorder.c 
     # ${MPY_PORT_DIR}/builtins/mod_audio/vfs_stream.c 
-    ${MPY_PORT_DIR}/builtins/mod_audio/modaudio.c 
+    # ${MPY_PORT_DIR}/builtins/mod_audio/modaudio.c
 )
 
 set(MICROPY_SOURCE_BOARD_DIR
     ${MPY_PORT_DIR}/drivers
+    ${MPY_PORT_DIR}/drivers/audio/include
     ${MPY_PORT_DIR}/lib
     ${MPY_PORT_DIR}/builtins
+    ${MPY_PORT_DIR}/boards
 )
 
-# if(CONFIG_LABPLUS_CLASSROOM_KIT_NANJING_BOARD)
-set(ADF_COMPONENTS 
-    # ${MPY_PORT_DIR}/adf_components/adf_utils
-    ${MPY_PORT_DIR}/adf_components/audio_board
-    ${MPY_PORT_DIR}/adf_components/audio_hal
-    # ${MPY_PORT_DIR}/adf_components/audio_pipeline
-    # ${MPY_PORT_DIR}/adf_components/audio_recorder
-    ${MPY_PORT_DIR}/adf_components/audio_sal
-    # ${MPY_PORT_DIR}/adf_components/audio_stream
-    # ${MPY_PORT_DIR}/adf_components/clouds
-    # ${MPY_PORT_DIR}/adf_components/display_service
-    # ${MPY_PORT_DIR}/adf_components/dueros_service
-    # ${MPY_PORT_DIR}/adf_components/esp_actions
-    # ${MPY_PORT_DIR}/adf_components/esp_dispatcher
-    # ${MPY_PORT_DIR}/adf_components/esp_peripherals
-    # ${MPY_PORT_DIR}/adf_components/esp-adf-libs
-    ${MPY_PORT_DIR}/adf_components/esp-adf-libs/esp_audio_codec
-    ${MPY_PORT_DIR}/adf_components/esp-sr 
-    # ${MPY_PORT_DIR}/adf_components/tone_partition 
-    # ${MPY_PORT_DIR}/adf_components/wifi_service
-    )
-# endif()
+# # if(CONFIG_LABPLUS_CLASSROOM_KIT_NANJING_BOARD)
+# set(ADF_COMPONENTS 
+#     # ${MPY_PORT_DIR}/adf_components/adf_utils
+#     ${MPY_PORT_DIR}/adf_components/audio_board
+#     ${MPY_PORT_DIR}/adf_components/audio_hal
+#     # ${MPY_PORT_DIR}/adf_components/audio_pipeline
+#     # ${MPY_PORT_DIR}/adf_components/audio_recorder
+#     ${MPY_PORT_DIR}/adf_components/audio_sal
+#     # ${MPY_PORT_DIR}/adf_components/audio_stream
+#     # ${MPY_PORT_DIR}/adf_components/clouds
+#     # ${MPY_PORT_DIR}/adf_components/display_service
+#     # ${MPY_PORT_DIR}/adf_components/dueros_service
+#     # ${MPY_PORT_DIR}/adf_components/esp_actions
+#     # ${MPY_PORT_DIR}/adf_components/esp_dispatcher
+#     # ${MPY_PORT_DIR}/adf_components/esp_peripherals
+#     # ${MPY_PORT_DIR}/adf_components/esp-adf-libs
+#     ${MPY_PORT_DIR}/adf_components/esp-adf-libs/esp_audio_codec
+#     ${MPY_PORT_DIR}/adf_components/esp-sr 
+#     # ${MPY_PORT_DIR}/adf_components/tone_partition 
+#     # ${MPY_PORT_DIR}/adf_components/wifi_service
+#     )
+# # endif()
 
-list(APPEND EXTRA_COMPONENT_DIRS
-    ${ADF_COMPONENTS})
+# list(APPEND EXTRA_COMPONENT_DIRS
+#     ${ADF_COMPONENTS})
 
 set(MICROPY_FROZEN_MANIFEST ${MICROPY_BOARD_DIR}/manifest.py)

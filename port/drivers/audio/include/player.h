@@ -1,0 +1,37 @@
+#ifndef __PLAYER_
+#define __PLAYER_
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "py/obj.h"
+typedef struct
+{
+    QueueHandle_t player_queue;
+    struct wav_decoder *wav_codec;
+    int rb_size;
+    int frame_size;
+    char **file_list;
+    const char *file_uri;
+    int file_num;
+    int max_file_num;
+    int player_state;
+    int vol;
+    TaskHandle_t stream_in;
+    TaskHandle_t stream_out;
+} player_handle_t;
+
+typedef void* player_handle;
+#define FATFS_PATH_LENGTH_MAX 256
+
+void player_create(int ringbuf_size, unsigned int core_num);
+void player_play(void *handle, const char *file_uri);
+void player_pause(void *handle);
+void player_continue(void *handle);
+void player_exit(void *handle);
+int player_get_state(void *handle);
+void player_set_vol(void *handle, int vol);
+void player_increase_vol(void *handle);
+void player_decrease_vol(void *handle);
+
+extern player_handle_t *player;
+
+#endif
