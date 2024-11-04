@@ -4,7 +4,7 @@
  *  Created on: 2024.08.23
  *      Author: zhaohuijiang
  */
-#if MICROPY_PY_AUDIO
+// #if MICROPY_PY_AUDIO
 #include <stdlib.h> 
 #include <string.h>
 #include "esp_err.h"
@@ -44,7 +44,7 @@ static const char *TAG = "audio";
 //     // vfs_fat_file_open(args[0], args[1]);
 //     return mp_const_none;
 // }
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_mod_lfs2_open_obj, 0, 2, audio_mod_lsfs2_open);
+// static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_mod_lfs2_open_obj, 0, 2, audio_mod_lsfs2_open);
 
 static mp_obj_t mod_audio_init(void)
 {
@@ -53,17 +53,17 @@ static mp_obj_t mod_audio_init(void)
 }
 static MP_DEFINE_CONST_FUN_OBJ_0(mod_audio_init_obj, mod_audio_init);
 
-static mp_obj_t audio_deinit(void)
+static mp_obj_t mod_audio_deinit(void)
 {
     audio_deinit();
     return mp_const_none;
 }
-static MP_DEFINE_CONST_FUN_OBJ_0(audio_deinit_obj, audio_deinit);
+static MP_DEFINE_CONST_FUN_OBJ_0(audio_deinit_obj, mod_audio_deinit);
 
 /* ---------------player ------------------------*/
 static mp_obj_t audio_player_init(size_t n_args, const mp_obj_t *args)
 {
-    player_create(4096, 1);
+    // player_create(4096, 1);
     return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_player_init_obj, 0, 1, audio_player_init);
@@ -76,10 +76,8 @@ static MP_DEFINE_CONST_FUN_OBJ_0(audio_player_deinit_obj, audio_player_deinit);
 
 static mp_obj_t audio_play(mp_obj_t uri)
 {
-    if(player){
-        const char *_uri = mp_obj_str_get_str(uri);
-        player_play(player, _uri);
-    }
+    const char *_uri = mp_obj_str_get_str(uri);
+    player_play(_uri);
     
     return mp_const_none;
 }
@@ -174,7 +172,7 @@ static const mp_map_elem_t mpython_audio_locals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_audio)},
     {MP_OBJ_NEW_QSTR(MP_QSTR___init__), (mp_obj_t)&mod_audio_init_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_deinit), (mp_obj_t)&audio_deinit_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_lfs2_open), (mp_obj_t)&audio_mod_lfs2_open_obj},
+    // {MP_OBJ_NEW_QSTR(MP_QSTR_lfs2_open), (mp_obj_t)&audio_mod_lfs2_open_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_player_init), (mp_obj_t)&audio_player_init_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_player_deinit), (mp_obj_t)&audio_player_deinit_obj},
 	{MP_OBJ_NEW_QSTR(MP_QSTR_play), (mp_obj_t)&audio_play_obj},
@@ -196,5 +194,5 @@ const mp_obj_module_t mp_module_audio = {
     .globals = (mp_obj_dict_t *)&mpython_audio_locals_dict,
 };
 
-MP_REGISTER_EXTENSIBLE_MODULE(MP_QSTR_audio, mp_module_audio);
-#endif //#if MICROPY_PY_AUDIO
+MP_REGISTER_MODULE(MP_QSTR_audio, mp_module_audio);
+// #endif //#if MICROPY_PY_AUDIO

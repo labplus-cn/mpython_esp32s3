@@ -10,5 +10,10 @@
 #define MICROPY_HW_I2C0_SCL                 (35)
 #define MICROPY_HW_I2C0_SDA                 (34)
 
-#define MICROPY_PY_ESP_MUSIC                (1)
+#ifndef MICROPY_PY_ESP_MUSIC
+#define MICROPY_PY_ESP_MUSIC                   (1)
+#endif
+
+#ifndef MICROPY_PY_AUDIO
 #define MICROPY_PY_AUDIO                    (1)
+#endif

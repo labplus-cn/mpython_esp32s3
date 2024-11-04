@@ -3,6 +3,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
+#include "freertos/ringbuf.h"
 #include "py/obj.h"
 #include "wav_decoder.h"
 
@@ -11,6 +12,14 @@
 
 #define CORE_NUM0 0
 #define CORE_NUM1 1
+
+#define RINGBUF_SIZE   (10240) //(3880)
+#define RINGBUF_WATER_SIZE (5120)
+
+typedef enum{
+    AUDIO_WAV_FILE_PLAY,
+    AUDIO_WAV_FILE_RECORD,
+}audio_type_t;
 
 typedef struct
 {
@@ -27,6 +36,8 @@ typedef struct
     TaskHandle_t wav_file_read_task;
     TaskHandle_t stream_out_task;
     wav_info_t wav_info;
+    audio_type_t audio_type;
+    RingbufHandle_t stream_out_ringbuff;
 } player_handle_t;
 
 typedef void* player_handle;
@@ -41,6 +52,9 @@ int player_get_state(void);
 void player_set_vol(int vol);
 void player_increase_vol(void);
 void player_decrease_vol(void);
+
+void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, uint16_t len);
+uint16_t read_ringbuf(RingbufHandle_t ring_buff, uint16_t supply_bytes, uint8_t *buffer);
 
 extern player_handle_t *player;
 

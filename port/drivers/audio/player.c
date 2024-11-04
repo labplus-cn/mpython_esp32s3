@@ -63,30 +63,31 @@ void player_play(const char *uri)
     if(!player){
         player = calloc(1, sizeof(player_handle_t));
         player->player_event = xEventGroupCreate(); 
-        player->player_queue = xQueueCreate(10, sizeof(msg_t));      
+        player->player_queue = xQueueCreate(10, sizeof(msg_t));  
+        player->stream_out_ringbuff = xRingbufferCreate(RINGBUF_SIZE, RINGBUF_TYPE_BYTEBUF);    
     }else{
         if(player->player_state == 1 || player->player_state == 2){
 
         }
     }
 
-    player->uri = uri;
+    player->file_uri = uri;
     player->player_state = 1;
     if(strstr(uri, "http")){   // web play, include https
 
     }else{
-        if(strstr(uri, ".mp3"))){
-            player_instance->content_type = AUDIO_MPEG;
+        if(strstr(uri, ".mp3")){
+           
         }else if(strstr(uri, ".pcm")){
-            player_instance->content_type = AUDIO_PCM;
+            
         }else if(strstr(uri, ".wav")){
-            audio_handle->audio_type = AUDIO_WAV_FILE_PLAY;
-            xTaskCreatePinnedToCore(&wav_file_read_task, "wav_file_read_task", 4 * 1024, (void*)player, 8, player->wav_file_read_task, CORE_NUM1);
+            player->audio_type = AUDIO_WAV_FILE_PLAY;
+            xTaskCreatePinnedToCore(&wav_file_read_task, "wav_file_read_task", 4 * 1024, (void*)player, 8, &player->wav_file_read_task, CORE_NUM1);
             // ESP_LOGE(TAG, "wav file");
         }else if(strstr(uri, ".m4a")){
-            player_instance->content_type = AUDIO_MP4;
+            
         }else if(strstr(uri, ".aac")){
-            player_instance->content_type = AUDIO_AAC;
+            
         }
         else{
             mp_warning(NULL, "Not suport format.");
@@ -107,8 +108,10 @@ void player_resume(void)
 
 void player_stop(void)
 {
+    vRingbufferDelete(player->stream_out_ringbuff);
+
     xEventGroupSetBits(
-            xEventGroup,    // The event group being updated.
+            player->player_event,    // The event group being updated.
             EV_DEL_FILE_READ_TASK | EV_DEL_STREAM_OUT_TASK );// The bits being set.
 }
 
@@ -155,4 +158,48 @@ void player_decrease_vol(void)
     esp_audio_set_play_vol(vol);
 }
 
+void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, uint16_t len)
+{
+    int free_size;
+
+    free_size = xRingbufferGetCurFreeSize(ring_buff); //get ringbuf free size
+    if(free_size >= len){
+        xRingbufferSend(ring_buff, (const void *)buffer, (size_t)len, 100/portTICK_PERIOD_MS);
+    }else{
+        if(free_size > 0){
+            xRingbufferSend(ring_buff, (const void *)buffer, (size_t)free_size, 100/portTICK_PERIOD_MS);
+        }
+        
+    }
+}
+
+uint16_t read_ringbuf(RingbufHandle_t ring_buff, uint16_t supply_bytes, uint8_t *buffer)
+{
+    int ringBufRemainBytes = 0;
+    size_t len = 0;
+    void *temp = NULL;
+
+    ringBufRemainBytes = RINGBUF_SIZE - xRingbufferGetCurFreeSize(ring_buff); 
+
+    /* 1 从ringbuf中读解码器需要的数据量 */
+    if (ringBufRemainBytes > 0)
+    {
+        if(ringBufRemainBytes >= supply_bytes)  //ring buffer remain data enough for decoder need
+        { 
+            if(supply_bytes != 0){
+                temp = xRingbufferReceiveUpTo(ring_buff,  &len, 500 / portTICK_PERIOD_MS, supply_bytes);
+            }
+        }
+        else{ 
+            temp = xRingbufferReceiveUpTo(ring_buff,  &len, 50 / portTICK_PERIOD_MS, ringBufRemainBytes);     
+        }  
+
+        if(temp != NULL){
+            memcpy(buffer, temp, len);
+            vRingbufferReturnItem(ring_buff, (void *)temp);
+        }
+    }
+    // ESP_LOGE(TAG, "ringBufRemainBytes = %d, supply_bytes = %d, left bytes: %d", ringBufRemainBytes, supply_bytes, *bytes_left);
+    return len;
+}
 
