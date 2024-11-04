@@ -26,26 +26,29 @@
 extern "C" {
 #endif
 
-typedef struct wav_decoder {
-    mp_obj_vfs_lfs2_file_t *lfs2_file;
-	uint32_t data_length;
+typedef struct{
 	int format;
 	int sample_rate;
 	int bits_per_sample;
 	int channels;
 	int byte_rate;
 	int block_align;
+} wav_info_t;
+
+typedef struct{
+    mp_obj_vfs_lfs2_file_t *lfs2_file;
+	wav_info_t wav_info;
+	uint32_t data_length;  //音频数据长度
 } wav_decoder_t;
 
 void* wav_decoder_init(void);
-void wav_decoder_deinit(void* obj);
-int wav_decoder_get_header(void* obj, int* format, int* channels, int* sample_rate, int* bits_per_sample, unsigned int* data_length);
-int wav_decoder_get_sample_rate(void* obj);
-int wav_decoder_get_channel(void* obj);
-int wav_decoder_get_data_length(void* obj);
+void wav_decoder_deinit(void);
+void wav_get_info(wav_info_t *wav_info);
 
-esp_err_t wav_file_open(void* obj, const char *path_in);
-void wav_file_close(void* obj);
+esp_err_t wav_file_open(const char *path_in);
+void wav_file_close(void);
+
+void wav_file_read_task(void *arg);
 
 #ifdef __cplusplus
 }

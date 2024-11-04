@@ -1,85 +1,80 @@
-/**
- * 
- * @copyright Copyright 2021 Espressif Systems (Shanghai) Co. Ltd.
- *
- *      Licensed under the Apache License, Version 2.0 (the "License");
- *      you may not use this file except in compliance with the License.
- *      You may obtain a copy of the License at
- *
- *               http://www.apache.org/licenses/LICENSE-2.0
-
- *      Unless required by applicable law or agreed to in writing, software
- *      distributed under the License is distributed on an "AS IS" BASIS,
- *      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *      See the License for the specific language governing permissions and
- *      limitations under the License.
- */
-#include <stdint.h>
-#include <stdio.h>
-#include <unistd.h>
-#include "esp_err.h"
-#include "sdmmc_cmd.h"
-#include "bsp_audio.h"
+#include "stdio.h"
+#include "stdlib.h"
+#include <string.h>
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
 #include "audio.h"
+#include "audio_board.h"
 
-// static const char *TAG = "hardware";
+audio_handle_t *audio_handle = NULL;
 
-// esp_err_t esp_board_i2s_init(uint32_t sample_rate, int channel_format, int bits_per_chan)
-// {
-//     return bsp_i2s_init(sample_rate, channel_format, bits_per_chan);
-// }
-
-esp_err_t esp_board_codec_dev_create(void)
+void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, uint16_t len)
 {
-    return bsp_codec_dev_create();
+    int free_size;
+
+    free_size = xRingbufferGetCurFreeSize(ring_buff); //get ringbuf free size
+    if(free_size >= len){
+        xRingbufferSend(ring_buff, (const void *)buffer, (size_t)len, 100/portTICK_PERIOD_MS);
+    }else{
+        if(free_size > 0){
+            xRingbufferSend(ring_buff, (const void *)buffer, (size_t)free_size, 100/portTICK_PERIOD_MS);
+        }
+        
+    }
 }
 
-esp_err_t esp_board_codec_dev_delete(void)
+uint16_t read_ringbuf(RingbufHandle_t ring_buff, uint16_t supply_bytes, uint8_t *buffer)
 {
-    return bsp_codec_dev_delete();
+    int ringBufRemainBytes = 0;
+    size_t len = 0;
+    void *temp = NULL;
+
+    ringBufRemainBytes = RINGBUF_SIZE - xRingbufferGetCurFreeSize(ring_buff); 
+
+    /* 1 从ringbuf中读解码器需要的数据量 */
+    if (ringBufRemainBytes > 0)
+    {
+        if(ringBufRemainBytes >= supply_bytes)  //ring buffer remain data enough for decoder need
+        { 
+            if(supply_bytes != 0){
+                temp = xRingbufferReceiveUpTo(ring_buff,  &len, 500 / portTICK_PERIOD_MS, supply_bytes);
+            }
+        }
+        else{ 
+            temp = xRingbufferReceiveUpTo(ring_buff,  &len, 50 / portTICK_PERIOD_MS, ringBufRemainBytes);     
+        }  
+
+        if(temp != NULL){
+            memcpy(buffer, temp, len);
+            vRingbufferReturnItem(ring_buff, (void *)temp);
+        }
+    }
+    // ESP_LOGE(TAG, "ringBufRemainBytes = %d, supply_bytes = %d, left bytes: %d", ringBufRemainBytes, supply_bytes, *bytes_left);
+    return len;
 }
 
-esp_err_t esp_board_codec_dev_open(uint32_t sample_rate, int channel_format, int bits_per_chan)
+void audio_init(void)
 {
-    return bsp_codec_dev_open(sample_rate, channel_format, bits_per_chan);
+    if(!audio_handle){
+        esp_board_codec_dev_create();
+        audio_handle->stream_out_ringbuff = xRingbufferCreate(RINGBUF_SIZE, RINGBUF_TYPE_BYTEBUF);
+        audio_handle->stream_out_buff = calloc(BUFFER_SIZE, sizeof(uint8_t));
+        audio_handle->stream_out_zero_buff = calloc(BUFFER_SIZE, sizeof(uint8_t));
+    }
 }
 
-esp_err_t esp_board_codec_dev_close(void)
+void audio_deinit(void)
 {
-    return bsp_codec_dev_close();
-}
-
-esp_err_t esp_get_feed_data(bool is_get_raw_channel, int16_t *buffer, int buffer_len)
-{
-    return bsp_get_feed_data(is_get_raw_channel, buffer, buffer_len);
-}
-
-int esp_get_feed_channel(void)
-{
-    return bsp_get_feed_channel();
-}
-
-esp_err_t esp_audio_play(const int16_t* data, int length, TickType_t ticks_to_wait)
-{
-    return bsp_audio_play(data, length, ticks_to_wait);
-}
-
-esp_err_t esp_audio_set_play_vol(int volume)
-{
-    return bsp_audio_set_play_vol(volume);
-}
-
-esp_err_t esp_audio_get_play_vol(int *volume)
-{
-    return bsp_audio_get_play_vol(volume);
-}
-
-esp_err_t FatfsComboWrite(const void* buffer, int size, int count, FILE* stream)
-{
-    esp_err_t res = ESP_OK;
-    res = fwrite(buffer, size, count, stream);
-    res |= fflush(stream);
-    res |= fsync(fileno(stream));
-
-    return res;
+    if(audio_handle){
+        esp_board_codec_dev_delete();
+        vRingbufferDelete(audio_handle->stream_out_ringbuff);
+        if(audio_handle->stream_out_buff){
+            free(audio_handle->stream_out_buff);
+        }
+        if(audio_handle->stream_out_zero_buff){
+            free(audio_handle->stream_out_zero_buff);
+        }
+    }
 }

@@ -4,7 +4,7 @@
  *  Created on: 2024.08.23
  *      Author: zhaohuijiang
  */
-// #if MICROPY_PY_AUDIO
+#if MICROPY_PY_AUDIO
 #include <stdlib.h> 
 #include <string.h>
 #include "esp_err.h"
@@ -34,34 +34,28 @@
 #include "soc/io_mux_reg.h"
 #include "audio.h"
 #include "player.h"
-#include "vfs_lfs2.h"
+// #include "vfs_lfs2.h"
 
 static const char *TAG = "audio";
-static bool audio_is_init = false;
 
-static mp_obj_t audio_mod_lsfs2_open(size_t n_args, const mp_obj_t *args)
-{
-    vfs_lfs2_file_open(mp_obj_str_get_str(args[0]));
-    // vfs_fat_file_open(args[0], args[1]);
-    return mp_const_none;
-}
+// static mp_obj_t audio_mod_lsfs2_open(size_t n_args, const mp_obj_t *args)
+// {
+//     vfs_lfs2_file_open(mp_obj_str_get_str(args[0]));
+//     // vfs_fat_file_open(args[0], args[1]);
+//     return mp_const_none;
+// }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_mod_lfs2_open_obj, 0, 2, audio_mod_lsfs2_open);
 
-static mp_obj_t audio_init(void)
+static mp_obj_t mod_audio_init(void)
 {
-    if(!audio_is_init){
-        esp_board_codec_dev_create();
-        audio_is_init = true;
-    }
-
+    audio_init();
     return mp_const_none;
 }
-static MP_DEFINE_CONST_FUN_OBJ_0(audio_init_obj, audio_init);
+static MP_DEFINE_CONST_FUN_OBJ_0(mod_audio_init_obj, mod_audio_init);
 
 static mp_obj_t audio_deinit(void)
 {
-    esp_board_codec_dev_delete();
-
+    audio_deinit();
     return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_0(audio_deinit_obj, audio_deinit);
@@ -178,7 +172,7 @@ static MP_DEFINE_CONST_FUN_OBJ_0(audio_recorder_deinit_obj, audio_recorder_deini
 
 static const mp_map_elem_t mpython_audio_locals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_audio)},
-    {MP_OBJ_NEW_QSTR(MP_QSTR___init__), (mp_obj_t)&audio_init_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR___init__), (mp_obj_t)&mod_audio_init_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_deinit), (mp_obj_t)&audio_deinit_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_lfs2_open), (mp_obj_t)&audio_mod_lfs2_open_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_player_init), (mp_obj_t)&audio_player_init_obj},
@@ -203,4 +197,4 @@ const mp_obj_module_t mp_module_audio = {
 };
 
 MP_REGISTER_EXTENSIBLE_MODULE(MP_QSTR_audio, mp_module_audio);
-// #endif //#if MICROPY_PY_AUDIO
+#endif //#if MICROPY_PY_AUDIO
