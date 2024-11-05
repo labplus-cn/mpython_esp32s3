@@ -193,7 +193,8 @@ linux系统按乐鑫要求安装一些库，安装gcc cmake
 5. 固件烧录
 
     ```bash
-    idf.py -p /dev/ttyACM0 -b 1500000 flash
+    idf.py -p /dev/ttyACM0 -b 4000000 flash monitor
+    idf.py -p /dev/ttyACM0 -b 4000000 monitor
     ```
 
     esptool命令：

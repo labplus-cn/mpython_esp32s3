@@ -158,22 +158,21 @@ void player_decrease_vol(void)
     esp_audio_set_play_vol(vol);
 }
 
-void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, uint16_t len)
+void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, size_t len)
 {
-    int free_size;
+    size_t free_size;
 
     free_size = xRingbufferGetCurFreeSize(ring_buff); //get ringbuf free size
     if(free_size >= len){
-        xRingbufferSend(ring_buff, (const void *)buffer, (size_t)len, 100/portTICK_PERIOD_MS);
+        xRingbufferSend(ring_buff, (const void *)buffer, len, 100/portTICK_PERIOD_MS);
     }else{
-        if(free_size > 0){
-            xRingbufferSend(ring_buff, (const void *)buffer, (size_t)free_size, 100/portTICK_PERIOD_MS);
-        }
-        
+        // if(free_size > 0){
+        //     xRingbufferSend(ring_buff, (const void *)buffer, free_size, 100/portTICK_PERIOD_MS);
+        // }      
     }
 }
 
-uint16_t read_ringbuf(RingbufHandle_t ring_buff, uint16_t supply_bytes, uint8_t *buffer)
+uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t supply_bytes, uint8_t *buffer)
 {
     int ringBufRemainBytes = 0;
     size_t len = 0;
@@ -186,7 +185,7 @@ uint16_t read_ringbuf(RingbufHandle_t ring_buff, uint16_t supply_bytes, uint8_t 
     {
         if(ringBufRemainBytes >= supply_bytes)  //ring buffer remain data enough for decoder need
         { 
-            if(supply_bytes != 0){
+            if(supply_bytes > 0){
                 temp = xRingbufferReceiveUpTo(ring_buff,  &len, 500 / portTICK_PERIOD_MS, supply_bytes);
             }
         }

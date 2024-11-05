@@ -54,8 +54,8 @@ void player_set_vol(int vol);
 void player_increase_vol(void);
 void player_decrease_vol(void);
 
-void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, uint16_t len);
-uint16_t read_ringbuf(RingbufHandle_t ring_buff, uint16_t supply_bytes, uint8_t *buffer);
+void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, size_t len);
+uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t supply_bytes, uint8_t *buffer);
 
 extern player_handle_t *player;
 

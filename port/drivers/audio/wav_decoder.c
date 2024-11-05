@@ -149,48 +149,72 @@ void wav_get_info(wav_info_t *wav_info) {
 
 void wav_file_read_task(void *arg)
 {
+	ESP_LOGE(TAG, "wav decodec task begin, RAM left: %ld", esp_get_free_heap_size());
     player_handle_t *player = arg;
-    unsigned char* buffer = malloc(FRAME_SIZE * sizeof(unsigned char));
-	int len = 0;
+	size_t len = 0;
 	EventBits_t uxBits;
+	size_t ringBufFreeBytes = 0;
 
-	if(!wav_decoder){
-		wav_decoder = (wav_decoder_t*) malloc(sizeof(*wav_decoder));
-		if (!wav_decoder) {
-			return;
-		}
+    unsigned char* buffer = malloc(FRAME_SIZE * sizeof(unsigned char));
+	if(!buffer){
+		return;
 	}
+	// if(!wav_decoder){
+	// 	wav_decoder = (wav_decoder_t*) malloc(sizeof(*wav_decoder));
+	// 	if (!wav_decoder) {
+	// 		free(buffer);
+	// 		return;
+	// 	}
+	// }
 
-	if(wav_file_open(player->file_uri) == ESP_OK){
-		player->wav_info = wav_decoder->wav_info;
-	}
+	// if(wav_file_open(player->file_uri) == ESP_OK){
+	// 	player->wav_info = wav_decoder->wav_info;
+	// }
+
+	// while(1){
+	// 	ringBufFreeBytes = xRingbufferGetCurFreeSize(player->stream_out_ringbuff);
+	// 	if( ringBufFreeBytes >= FRAME_SIZE){
+	// 		len = lfs2_file_read(&wav_decoder->lfs2_file->vfs->lfs, &wav_decoder->lfs2_file->file, buffer, FRAME_SIZE);
+	// 		fill_ringbuf(player->stream_out_ringbuff, buffer, len);
+	// 	}else{
+	// 		break;
+	// 	}
+	// }
+
 	xTaskCreatePinnedToCore(&stream_out_task, "stream_out", 5 * 1024, (void*)player, 8, &player->stream_out_task, CORE_NUM1);
 
     while (1) {
-		if(xRingbufferGetCurFreeSize(player->stream_out_ringbuff) >= FRAME_SIZE){
-			len = lfs2_file_read(&wav_decoder->lfs2_file->vfs->lfs, &wav_decoder->lfs2_file->file, buffer, FRAME_SIZE);
-			fill_ringbuf(player->stream_out_ringbuff, buffer, len);
-
-			if(len < FRAME_SIZE){  //文件读完了
-				xEventGroupSetBits(
-					player->player_event,    // The event group being updated.
-					EV_DEL_STREAM_OUT_TASK );// The bits being set.
-				break;
-			}
-		}
-		uxBits = xEventGroupWaitBits(    
-					player->player_event,    // The event group being tested.
-					EV_DEL_FILE_READ_TASK,  // The bits within the event group to wait for.
-					pdTRUE,         // BIT_0 and BIT_4 should be cleared before returning.
-					pdFALSE,         // not wait for both bits, either bit will do.
-					10 / portTICK_PERIOD_MS ); // Wait a maximum of 100ms for either bit to be set.
-		if(uxBits & EV_DEL_FILE_READ_TASK){ //Has get stop event.
+		// ringBufFreeBytes = xRingbufferGetCurFreeSize(player->stream_out_ringbuff);
+		// if( ringBufFreeBytes >= FRAME_SIZE){
+			// len = lfs2_file_read(&wav_decoder->lfs2_file->vfs->lfs, &wav_decoder->lfs2_file->file, buffer, FRAME_SIZE);
+			vTaskDelay(500 / portTICK_PERIOD_MS);
 			goto exit;
-		}
+		// 	// fill_ringbuf(player->stream_out_ringbuff, buffer, len);
+		// 	if(len > 0){
+		// 		xRingbufferSend(player->stream_out_ringbuff, (const void *)buffer, len, 100/portTICK_PERIOD_MS);
+		// 	}
+		// 	ESP_LOGE(TAG, "read len: %d", len);
+		// 	if(len < FRAME_SIZE){  //文件读完了
+		// 		xEventGroupSetBits(
+		// 			player->player_event,    // The event group being updated.
+		// 			EV_DEL_STREAM_OUT_TASK );// The bits being set.
+		// 		break;
+		// 	}
+		// }
+		// uxBits = xEventGroupWaitBits(    
+		// 			player->player_event,    // The event group being tested.
+		// 			EV_DEL_FILE_READ_TASK,  // The bits within the event group to wait for.
+		// 			pdTRUE,         // BIT_0 and BIT_4 should be cleared before returning.
+		// 			pdFALSE,         // not wait for both bits, either bit will do.
+		// 			10 / portTICK_PERIOD_MS ); // Wait a maximum of 100ms for either bit to be set.
+		// if(uxBits & EV_DEL_FILE_READ_TASK){ //Has get stop event.
+		// 	goto exit;
+		// }
     }
 exit:
-	wav_file_close();
-	free(wav_decoder);
+	// wav_file_close();
+	free(buffer);
+	// free(wav_decoder);
 	ESP_LOGE(TAG, "wav decodec task end, RAM left: %ld", esp_get_free_heap_size());
 	player->wav_file_read_task = NULL;
 	vTaskDelete(NULL);	
