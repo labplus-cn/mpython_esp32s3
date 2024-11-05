@@ -34,7 +34,7 @@
  */
 #define FUNC_I2C_EN     (1)
 #define I2C_NUM         (0)
-#define I2C_CLK         (100000)
+#define I2C_CLK         (400000)
 #define GPIO_I2C_SCL    (GPIO_NUM_34)
 #define GPIO_I2C_SDA    (GPIO_NUM_35)
 
@@ -54,7 +54,7 @@
  * @brief player configurations
  *
  */
-#define PLAYER_VOLUME   (70)
+#define PLAYER_VOLUME   (90)
 
 /**
  * @brief ESP32-S3-HMI-DevKit power control IO

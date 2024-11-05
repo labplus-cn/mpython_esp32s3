@@ -12,7 +12,6 @@
 #include "player.h"
 
 #define TAG    "stream_out"
-#define BUFFER_SIZE 1024
 
 void stream_out_task(void *arg)
 {
@@ -21,16 +20,14 @@ void stream_out_task(void *arg)
     uint16_t len;
     EventBits_t uxBits;
 
-    uint8_t *stream_out_buff = calloc(BUFFER_SIZE, sizeof(uint8_t));
-    uint8_t *stream_out_zero_buff = calloc(BUFFER_SIZE, sizeof(uint8_t));
-    if(!stream_out_buff || !stream_out_zero_buff){
+    uint8_t *stream_out_buff = malloc(FRAME_SIZE * sizeof(uint8_t));
+    if(!stream_out_buff){
         return;
     }
 
     esp_board_codec_dev_open(player->wav_info.sample_rate, player->wav_info.channels, player->wav_info.bits_per_sample);
-
     while (1) {
-        len = read_ringbuf(player->stream_out_ringbuff, BUFFER_SIZE, stream_out_buff);
+        len = read_ringbuf(player->stream_out_ringbuff, FRAME_SIZE, stream_out_buff);
         if(len > 0){
             if(player->audio_type == AUDIO_WAV_FILE_PLAY){
                 // ESP_LOGE(TAG, "stream out data. len: %d", len);
@@ -38,11 +35,10 @@ void stream_out_task(void *arg)
             }else if(player->audio_type == AUDIO_WAV_FILE_RECORD){
                 //write data to file
             }
-            // vTaskDelay(1 / portTICK_PERIOD_MS);
         }else{
-            vTaskDelay(2 / portTICK_PERIOD_MS);
+            memset(stream_out_buff, 0, FRAME_SIZE);
+            esp_audio_play((int16_t *)stream_out_buff, FRAME_SIZE, portMAX_DELAY);
         }
-
         uxBits = xEventGroupWaitBits(
                     player->player_event,    // The event group being tested.
                     EV_DEL_STREAM_OUT_TASK,  // The bits within the event group to wait for.
@@ -60,10 +56,8 @@ exit:
     if(stream_out_buff){
         free(stream_out_buff);
     }
-    if(stream_out_zero_buff){
-        free(stream_out_zero_buff);
-    }
     ESP_LOGE(TAG, "stream out task end, RAM left: %ld", esp_get_free_heap_size());
+    player->stream_out_task = NULL;
     vTaskDelete(NULL);
 }
 

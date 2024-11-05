@@ -13,8 +13,9 @@
 #define CORE_NUM0 0
 #define CORE_NUM1 1
 
-#define RINGBUF_SIZE   (10240) //(3880)
-#define RINGBUF_WATER_SIZE (5120)
+#define RINGBUF_SIZE   (1024*4) //(3880)
+#define RINGBUF_WATER_SIZE (1024*2)
+#define FRAME_SIZE 1024
 
 typedef enum{
     AUDIO_WAV_FILE_PLAY,
