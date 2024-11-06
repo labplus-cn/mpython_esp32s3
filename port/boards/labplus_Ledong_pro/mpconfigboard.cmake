@@ -26,12 +26,11 @@ set(MICROPY_SOURCE_BOARD
     ${MICROPY_BOARD_DIR}/main.c
     ${MICROPY_BOARD_DIR}/bsp_audio_board.c
     ${MPY_PORT_DIR}/drivers/audio/vfs_lfs2.c
+    ${MPY_PORT_DIR}/drivers/audio/wave_head.c
     ${MPY_PORT_DIR}/drivers/audio/vfs_fatfs.c
     ${MPY_PORT_DIR}/drivers/audio/wav_decoder.c
-    ${MPY_PORT_DIR}/drivers/audio/audio_board.c
     ${MPY_PORT_DIR}/drivers/audio/player.c
     ${MPY_PORT_DIR}/drivers/audio/audio.c
-    ${MPY_PORT_DIR}/drivers/audio/stream_out.c
     ${MPY_PORT_DIR}/drivers/startup/00030.c
     ${MPY_PORT_DIR}/drivers/startup/i2c_master.c
     ${MPY_PORT_DIR}/drivers/startup/oled.c

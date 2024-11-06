@@ -24,7 +24,7 @@ typedef enum{
 
 typedef struct
 {
-    struct wav_decoder *wav_codec;
+    wav_decoder_t *wav_decoder;
     int frame_size;
     char **file_list;
     const char *file_uri;
@@ -35,8 +35,7 @@ typedef struct
     QueueHandle_t player_queue;
     EventGroupHandle_t player_event;
     TaskHandle_t wav_file_read_task;
-    TaskHandle_t stream_out_task;
-    wav_info_t wav_info;
+    TaskHandle_t stream_i2s_out_task;
     audio_type_t audio_type;
     RingbufHandle_t stream_out_ringbuff;
 } player_handle_t;
@@ -56,6 +55,7 @@ void player_decrease_vol(void);
 
 void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, size_t len);
 uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t supply_bytes, uint8_t *buffer);
+void clear_ringbuf(RingbufHandle_t ring_buff);
 
 extern player_handle_t *player;
 

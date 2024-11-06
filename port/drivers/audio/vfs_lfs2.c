@@ -45,7 +45,7 @@ static void lfs_get_mtime(uint8_t buf[8]) {
     }
 }
 
-mp_obj_vfs_lfs2_file_t* vfs_lfs2_file_open(const char *path_in)
+mp_obj_vfs_lfs2_file_t *vfs_lfs2_file_open(const char *path_in, int mode)
 {
     mp_vfs_mount_t *existing_mount = MP_STATE_VM(vfs_mount_table);
 
@@ -61,12 +61,11 @@ mp_obj_vfs_lfs2_file_t* vfs_lfs2_file_open(const char *path_in)
     }
 
     const mp_obj_type_t *type = &mp_type_vfs_lfs2_textio;
-
     mp_obj_vfs_lfs2_file_t *mp_obj_lfs2_file = calloc(sizeof(mp_obj_vfs_lfs2_file_t) + mp_obj_lfs2->lfs.cfg->cache_size, sizeof(uint8_t));
-    mp_obj_lfs2_file->base.type = type;
 
+    mp_obj_lfs2_file->base.type = type;
     mp_obj_lfs2_file->vfs = mp_obj_lfs2;
-    mp_obj_lfs2_file->cfg.buffer = &mp_obj_lfs2_file->file_buffer[0];
+    mp_obj_lfs2_file->cfg.buffer =&mp_obj_lfs2_file->file_buffer[0];
 
     if (mp_obj_lfs2->enable_mtime) {
         lfs_get_mtime(&mp_obj_lfs2_file->mtime[0]);
@@ -77,7 +76,7 @@ mp_obj_vfs_lfs2_file_t* vfs_lfs2_file_open(const char *path_in)
         mp_obj_lfs2_file->cfg.attr_count = MP_ARRAY_SIZE(mp_obj_lfs2_file->attrs);
     }
 
-    int ret = lfs2_file_opencfg(&mp_obj_lfs2->lfs, &mp_obj_lfs2_file->file, path_in, LFS2_O_RDONLY, &mp_obj_lfs2_file->cfg);
+    int ret = lfs2_file_opencfg(&mp_obj_lfs2->lfs, &mp_obj_lfs2_file->file, path_in, mode, &mp_obj_lfs2_file->cfg);
     if (ret < 0) {
         mp_obj_lfs2_file->vfs = NULL;
         mp_raise_OSError(-ret);
@@ -91,6 +90,14 @@ mp_obj_vfs_lfs2_file_t* vfs_lfs2_file_open(const char *path_in)
     return mp_obj_lfs2_file;
 }
 
+void vfs_lfs2_file_close(mp_obj_vfs_lfs2_file_t *lfs2_file)
+{
+	if(lfs2_file){
+        lfs2_file_close(&lfs2_file->vfs->lfs, &lfs2_file->file);
+        free(lfs2_file);
+	}
+}
 
 
-
+    
+    

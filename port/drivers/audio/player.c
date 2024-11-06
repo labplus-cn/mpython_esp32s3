@@ -8,7 +8,7 @@
 #include "wav_decoder.h"
 #include "freertos/queue.h"
 #include <sys/stat.h>
-#include "audio_board.h"
+#include "bsp_audio.h"
 #include <dirent.h>
 #include "msg.h"
 
@@ -69,6 +69,7 @@ void player_play(const char *uri)
         if(player->player_state == 1 || player->player_state == 2){
 
         }
+        clear_ringbuf(player->stream_out_ringbuff);
     }
 
     player->file_uri = uri;
@@ -122,13 +123,13 @@ int player_get_state(void)
 
 void player_set_vol(int vol)
 {
-    esp_audio_set_play_vol(vol);   
+    bsp_audio_set_play_vol(vol);   
 }
 
 void player_increase_vol(void)
 {
     int vol = 0;
-    esp_audio_get_play_vol(&vol);
+    bsp_audio_get_play_vol(&vol);
     if (vol < 50) {
         vol += 3;
     } else if (vol < 70) {
@@ -138,13 +139,13 @@ void player_increase_vol(void)
     } else {
         vol = 95;
     }
-    esp_audio_set_play_vol(vol);
+    bsp_audio_set_play_vol(vol);
 }
 
 void player_decrease_vol(void)
 {
     int vol = 65;
-    esp_audio_get_play_vol(&vol);
+    bsp_audio_get_play_vol(&vol);
     if (vol >= 95) {
         vol -= 1;
     } else if (vol >= 70) {
@@ -155,7 +156,7 @@ void player_decrease_vol(void)
         vol = 50;
     }
 
-    esp_audio_set_play_vol(vol);
+    bsp_audio_set_play_vol(vol);
 }
 
 void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, size_t len)
@@ -186,7 +187,7 @@ uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t supply_bytes, uint8_t *b
         if(ringBufRemainBytes >= supply_bytes)  //ring buffer remain data enough for decoder need
         { 
             if(supply_bytes > 0){
-                temp = xRingbufferReceiveUpTo(ring_buff,  &len, 500 / portTICK_PERIOD_MS, supply_bytes);
+                temp = xRingbufferReceiveUpTo(ring_buff,  &len, 50 / portTICK_PERIOD_MS, supply_bytes);
             }
         }
         else{ 
@@ -200,5 +201,17 @@ uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t supply_bytes, uint8_t *b
     }
     // ESP_LOGE(TAG, "ringBufRemainBytes = %d, supply_bytes = %d, left bytes: %d", ringBufRemainBytes, supply_bytes, *bytes_left);
     return len;
+}
+
+void clear_ringbuf(RingbufHandle_t ring_buff)
+{
+    int ringBufRemainBytes = 0;
+    size_t len;
+    void *temp = NULL;
+
+    ringBufRemainBytes = RINGBUF_SIZE - xRingbufferGetCurFreeSize(ring_buff); //
+    temp = xRingbufferReceiveUpTo(ring_buff,  &len, 50 / portTICK_PERIOD_MS, ringBufRemainBytes);
+    if(temp != NULL)
+        vRingbufferReturnItem(ring_buff, (void *)temp);
 }
 

@@ -21,34 +21,22 @@
 
 #include "vfs_lfs2.h"
 #include "py/obj.h"
+#include "wave_head.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct{
-	int format;
-	int sample_rate;
-	int bits_per_sample;
-	int channels;
-	int byte_rate;
-	int block_align;
-} wav_info_t;
-
 typedef struct{
     mp_obj_vfs_lfs2_file_t *lfs2_file;
 	wav_info_t wav_info;
-	uint32_t data_length;  //音频数据长度
 } wav_decoder_t;
 
-void* wav_decoder_init(void);
-void wav_decoder_deinit(void);
-void wav_get_info(wav_info_t *wav_info);
 
-esp_err_t wav_file_open(const char *path_in);
-void wav_file_close(void);
+wav_decoder_t *wav_file_open(const char *path_in);
+void wav_file_close(wav_decoder_t *wr);
 
 void wav_file_read_task(void *arg);
+void stream_i2s_out_task(void *arg);
 
 #ifdef __cplusplus
 }

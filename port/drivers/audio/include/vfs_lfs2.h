@@ -55,7 +55,8 @@ typedef struct _mp_obj_vfs_lfs2_file_t {
     uint8_t file_buffer[0];
 } mp_obj_vfs_lfs2_file_t;
 
-mp_obj_vfs_lfs2_file_t* vfs_lfs2_file_open(const char *path_in);
+mp_obj_vfs_lfs2_file_t *vfs_lfs2_file_open(const char *path_in, int mode);
+void vfs_lfs2_file_close(mp_obj_vfs_lfs2_file_t *lfs2_file);
 
 #ifdef __cplusplus
 }
