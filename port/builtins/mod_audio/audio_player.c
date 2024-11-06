@@ -32,7 +32,7 @@
 
 #include "amr_decoder.h"
 #include "mp3_decoder.h"
-#include "wav_decoder.h"
+#include "wav_codec.h"
 
 #include "http_stream.h"
 #include "vfs_stream.h"

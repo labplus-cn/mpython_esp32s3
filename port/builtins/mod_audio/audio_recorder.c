@@ -38,7 +38,7 @@
 #include "i2s_stream.h"
 
 #include "amrnb_encoder.h"
-#include "wav_encoder.h"
+#include "wav_codec.h"
 
 #include "board.h"
 

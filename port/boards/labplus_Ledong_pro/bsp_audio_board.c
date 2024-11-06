@@ -261,20 +261,23 @@ esp_err_t bsp_audio_play(const int16_t* data, int length, TickType_t ticks_to_wa
     return ret;
 }
 
-/* afe 输入：16K 16bit 左 右声道，无ref,*/
+/* 做为afe is_get_raw_channel = true :16K 16bit 左声道 + 右声道，无ref, 
+          is_get_raw_channel = false :16K 16bit 左声道 + 右声道 + 一路ref,*/
 esp_err_t bsp_get_feed_data(bool is_get_raw_channel, int16_t *buffer, int buffer_len)
 {
     esp_err_t ret = ESP_OK;
-    // int audio_chunksize = buffer_len / (sizeof(int16_t) * ADC_I2S_CHANNEL);
+    int audio_chunksize;
 
     ret = esp_codec_dev_read(codec_dev, (void *)buffer, buffer_len);
-    // if (!is_get_raw_channel) {
-    //     for (int i = 0; i < audio_chunksize; i++) {
-    //         int16_t ref = buffer[4 * i + 0];
-    //         buffer[2 * i + 0] = buffer[4 * i + 1];
-    //         buffer[2 * i + 1] = ref;
-    //     }
-    // }
+
+    if (!is_get_raw_channel) {
+        audio_chunksize = buffer_len / (sizeof(int16_t) * ADC_I2S_CHANNEL);  //左
+        for (int i = 0; i < audio_chunksize; i++) {
+            int16_t ref = buffer[4 * i + 0];
+            buffer[2 * i + 0] = buffer[4 * i + 1];
+            buffer[2 * i + 1] = ref;
+        }
+    }
 
     return ret;
 }

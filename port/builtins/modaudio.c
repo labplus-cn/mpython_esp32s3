@@ -35,8 +35,9 @@
 #include "audio.h"
 #include "player.h"
 // #include "vfs_lfs2.h"
+#include "recorder.h"
 
-static const char *TAG = "audio";
+// static const char *TAG = "audio";
 
 // static mp_obj_t audio_mod_lsfs2_open(size_t n_args, const mp_obj_t *args)
 // {
@@ -107,12 +108,8 @@ static MP_DEFINE_CONST_FUN_OBJ_0(audio_pause_obj, audio_pause);
 
 static mp_obj_t audio_volume(mp_obj_t Volume)
 {
-    mp_int_t vol =  mp_obj_get_int(Volume);
-    #if MICROPY_BUILDIN_DAC 
-    player_set_volume(vol);
-    #else
-    // es8388_set_voice_volume(vol);
-    #endif
+    // mp_int_t vol =  mp_obj_get_int(Volume);
+
     return mp_const_none;   
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(audio_volume_obj, audio_volume);
@@ -154,7 +151,7 @@ static mp_obj_t audio_record(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    // recorder_recorde(mp_obj_str_get_str(args[ARG_file_name].u_obj), args[ARG_record_time].u_int); 
+    recorder_record(mp_obj_str_get_str(args[ARG_file_name].u_obj), args[ARG_record_time].u_int); 
 
     return mp_const_none;
 }

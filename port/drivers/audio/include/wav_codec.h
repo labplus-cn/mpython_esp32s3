@@ -16,8 +16,8 @@
  * -------------------------------------------------------------------
  */
 
-#ifndef WAV_DECODER_H
-#define WAV_DECODER_H
+#ifndef __WAV_CODEC_H_
+#define __WAV_CODEC_H_
 
 #include "vfs_lfs2.h"
 #include "py/obj.h"
@@ -26,17 +26,32 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define EV_DEL_FILE_WRITE_TASK       1
+#define EV_DEL_STREAM_IN_TASK        2
+#define EV_DEL_FILE_READ_TASK        4
+#define EV_DEL_STREAM_OUT_TASK       8
+
+#define CORE_NUM0 0
+#define CORE_NUM1 1
+
+#define RINGBUF_SIZE   (1024*4) //(3880)
+#define RINGBUF_WATER_SIZE (1024*2)
+#define FRAME_SIZE 1024
+
 typedef struct{
     mp_obj_vfs_lfs2_file_t *lfs2_file;
 	wav_info_t wav_info;
-} wav_decoder_t;
+} wav_codec_t;
 
 
-wav_decoder_t *wav_file_open(const char *path_in);
-void wav_file_close(wav_decoder_t *wr);
+wav_codec_t *wav_file_open(const char *path_in, int mode);
+void wav_file_close(wav_codec_t *wav_codec);
 
 void wav_file_read_task(void *arg);
-void stream_i2s_out_task(void *arg);
+void stream_i2s_write_task(void *arg);
+
+void stream_i2s_read_task(void *arg);
 
 #ifdef __cplusplus
 }

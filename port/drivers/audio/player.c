@@ -5,7 +5,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "wav_decoder.h"
+#include "wav_codec.h"
 #include "freertos/queue.h"
 #include <sys/stat.h>
 #include "bsp_audio.h"

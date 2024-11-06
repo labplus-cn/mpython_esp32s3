@@ -43,7 +43,7 @@
 
 // #include "tts_urat.h"
 
-// #include "wav_encoder.h"
+// #include "wav_codec.h"
 #include "esp_partition.h"
 #include "esp_idf_version.h"
 // #include "shared/runtime/pyexec.h"
