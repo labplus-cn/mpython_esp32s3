@@ -62,16 +62,15 @@ wav_codec_t *wav_file_open(const char *path_in, int mode)
 		}
 		// ESP_LOGE(TAG, "wav format: %d, channels: %d sample rate: %ld, bits per sample: %d, data lenght: %ld", wav_codec->wav_info.audioFormat, wav_codec->wav_info.channels, 
 		// 	wav_codec->wav_info.sampleRate, wav_codec->wav_info.bits_per_sample, wav_codec->wav_info.dataSize);
-	}else if(mode == LFS2_O_WRONLY){ //encoder
+	}else if((mode & LFS2_O_WRONLY) == LFS2_O_WRONLY){ //encoder
 		// write wav header to file.
-		// data_size = sample_rate * (bits_per_sampe / 8) * channels * time;
-		recorder->total_frames = recorder->time * (8000 * 1 * 16 / 8) / FRAME_SIZE;
 		/* make wav head */
 		wav_header_t *wav_header = calloc(1, sizeof(wav_header_t));
 		if (!wav_header)
 			mp_raise_ValueError(MP_ERROR_TEXT("Can not alloc enough memory to make wav head."));
-		wav_head_init(wav_header, 8000, 16, 1, recorder->total_frames * FRAME_SIZE);
+		wav_head_init(wav_header, 16000, 16, 2, recorder->total_frames * FRAME_SIZE);
 		lfs2_file_write(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file, (uint8_t *)wav_header, sizeof(wav_header_t));
+		// lfs2_file_sync(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file);
 		free(wav_header);
 	}
 
@@ -201,50 +200,52 @@ exit:
 
 void wav_file_write_task(void *arg)
 {
-	ESP_LOGE(TAG, "wav recorder task begin, RAM left: %ld", esp_get_free_heap_size());
+	ESP_LOGE(TAG, "wav file write task begin, RAM left: %ld", esp_get_free_heap_size());
     recorder_handle_t *recorder = arg;
 	EventBits_t uxBits;
-	size_t ringBufFreeBytes = 0;
+	size_t len = 0;
 
     unsigned char* buffer = calloc(FRAME_SIZE, sizeof(unsigned char));
 	if(!buffer){
 		return;
 	}
 
-	wav_codec_t *wav_codec = wav_file_open(recorder->file_uri, LFS2_O_WRONLY);
+	wav_codec_t *wav_codec = wav_file_open(recorder->file_uri, LFS2_O_WRONLY | LFS2_O_CREAT);
 	if(!wav_codec){
-		ESP_LOGE(TAG, "Wave file open failt.");
+			ESP_LOGE(TAG, "Wave file open failt.");
 		return;
 	}
 	recorder->wav_codec = wav_codec;
 
     while (1) {
-		ringBufFreeBytes = xRingbufferGetCurFreeSize(recorder->stream_in_ringbuff);
-		if( ringBufFreeBytes >= FRAME_SIZE){
-			lfs2_file_write(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file, buffer, FRAME_SIZE);
+		len = read_ringbuf(recorder->stream_in_ringbuff, FRAME_SIZE, buffer);
+		if(len > 0){
+			lfs2_file_write(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file, buffer, len);
+			// lfs2_file_sync(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file);
 		}
 		uxBits = xEventGroupWaitBits(    
 					recorder->recorder_event,    // The event group being tested.
 					EV_DEL_FILE_WRITE_TASK,  // The bits within the event group to wait for.
 					pdTRUE,         // BIT_0 and BIT_4 should be cleared before returning.
 					pdFALSE,         // not wait for both bits, either bit will do.
-					10 / portTICK_PERIOD_MS ); // Wait a maximum of 100ms for either bit to be set.
+					2 / portTICK_PERIOD_MS ); // Wait a maximum of 100ms for either bit to be set.
 		if(uxBits & EV_DEL_FILE_WRITE_TASK){ //Has get stop event.
 			goto exit;
 		}
     }
+
 exit:
 	wav_file_close(wav_codec);
 	free(buffer);
-	ESP_LOGE(TAG, "wav decodec task end, RAM left: %ld", esp_get_free_heap_size());
+	ESP_LOGE(TAG, "wav file write task end, RAM left: %ld", esp_get_free_heap_size());
 	vTaskDelete(NULL);	
 }
 
 void stream_i2s_read_task(void *arg)
 {
-    ESP_LOGE(TAG, "stream out task begin, RAM left: %ld", esp_get_free_heap_size());
+    ESP_LOGE(TAG, "stream in task begin, RAM left: %ld", esp_get_free_heap_size());
     recorder_handle_t *recorder = arg;
-	uint8_t frame_cnt = 0;
+	uint16_t frame_cnt = 0;
 
     uint8_t *stream_buff = calloc(FRAME_SIZE, sizeof(uint8_t));
     if(!stream_buff){
@@ -252,33 +253,24 @@ void stream_i2s_read_task(void *arg)
     }
 
     bsp_codec_dev_open(16000, 2, 16);
-	while(1){   
-		if(xRingbufferGetCurFreeSize(recorder->stream_in_ringbuff) >= FRAME_SIZE){
-			bsp_get_feed_data(false, (int16_t *)stream_buff, FRAME_SIZE / 2);
-			fill_ringbuf(recorder->stream_in_ringbuff, stream_buff, FRAME_SIZE);
-			frame_cnt++;
-		}else{
-			break;
-		}
-	}
-
-	xTaskCreatePinnedToCore(&wav_file_write_task, "wav_file_write_task", 2 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
+	xTaskCreatePinnedToCore(&wav_file_write_task, "wav_file_write_task", 4 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
 
     while (1) {
         if(xRingbufferGetCurFreeSize(recorder->stream_in_ringbuff) >= FRAME_SIZE){
-			bsp_get_feed_data(false, (int16_t *)stream_buff, FRAME_SIZE / 2);
+			bsp_get_feed_data(true, (int16_t *)stream_buff, FRAME_SIZE / 2);
 			fill_ringbuf(recorder->stream_in_ringbuff, stream_buff, FRAME_SIZE);	
 			frame_cnt++;
-
+			// ESP_LOGE(TAG, "frame cnt: %d", frame_cnt);
 			if(frame_cnt > recorder->total_frames){
 				xEventGroupSetBits(
 					recorder->recorder_event,    // The event group being updated.
 					EV_DEL_FILE_WRITE_TASK );// The bits being set.
 				break;
 			}
+			vTaskDelay(1 / portTICK_PERIOD_MS);
 			// ESP_LOGE(TAG, "ring buffer read len: %d", len);		
-		}else{
-            vTaskDelay(10 / portTICK_PERIOD_MS);
+			}else{
+            vTaskDelay(2 / portTICK_PERIOD_MS);
         }
     }
 
@@ -286,6 +278,6 @@ void stream_i2s_read_task(void *arg)
     if(stream_buff){
         free(stream_buff);
     }
-    ESP_LOGE(TAG, "stream out task end, RAM left: %ld", esp_get_free_heap_size());
+    ESP_LOGE(TAG, "stream in task end, RAM left: %ld", esp_get_free_heap_size());
     vTaskDelete(NULL);
 }

@@ -57,8 +57,11 @@ void recorder_record(const char *filename, int time)
         mp_warning(NULL, "Record time too long, will limit to 5s.");
         recorder->time = 5;
     }
-
-    xTaskCreatePinnedToCore(&stream_i2s_read_task, "stream_i2s_read_task", 2 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
+    // data_size = sample_rate * (bits_per_sampe / 8) * channels * time;
+    recorder->total_frames = recorder->time * (16000 * 2 * 16 / 8) / FRAME_SIZE;
+    ESP_LOGE(TAG, "record total frame: %d, time: %d", recorder->total_frames, recorder->time);
+    recorder->file_uri = filename;
+    xTaskCreatePinnedToCore(&stream_i2s_read_task, "stream_i2s_read_task", 4 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
 }
 
 uint32_t recorder_loudness()

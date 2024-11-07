@@ -12,7 +12,7 @@ typedef struct
     int frame_size;
     const char *file_uri;
     uint8_t time;
-    uint8_t total_frames;
+    uint16_t total_frames;
     EventGroupHandle_t recorder_event;
     RingbufHandle_t stream_in_ringbuff;
 } recorder_handle_t;
