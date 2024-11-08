@@ -29,6 +29,7 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/drivers/audio/wave_head.c
     ${MPY_PORT_DIR}/drivers/audio/vfs_fatfs.c
     ${MPY_PORT_DIR}/drivers/audio/wav_codec.c
+    ${MPY_PORT_DIR}/drivers/audio/es8388.c
     ${MPY_PORT_DIR}/drivers/audio/player.c
     ${MPY_PORT_DIR}/drivers/audio/recorder.c
     ${MPY_PORT_DIR}/drivers/audio/audio.c

@@ -28,8 +28,59 @@
 #include "audio.h"
 #include "player.h"
 #include "recorder.h"
+#include "es8388.h"
+#include "audio_hal.h"
 
 static const char *TAG = "wav_codec";
+
+#define I2S_NUM         (0)
+#define I2S_MCK_IO     (GPIO_NUM_39)
+#define I2S_BCK_IO     (GPIO_NUM_41)
+#define I2S_WS_IO      (GPIO_NUM_42)
+#define I2S_DO_IO      (GPIO_NUM_38)
+#define I2S_DI_IO      (GPIO_NUM_40)
+
+#define EXAMPLE_RECV_BUF_SIZE   (1024)
+#define EXAMPLE_SAMPLE_RATE     (16000)
+#define EXAMPLE_MCLK_MULTIPLE  (256)  // (384) // If not using 24-bit data width, 256 should be enough
+#define EXAMPLE_MCLK_FREQ_HZ    (EXAMPLE_SAMPLE_RATE * EXAMPLE_MCLK_MULTIPLE)
+#define EXAMPLE_VOICE_VOLUME    CONFIG_EXAMPLE_VOICE_VOLUME
+#if CONFIG_EXAMPLE_MODE_ECHO
+#define EXAMPLE_MIC_GAIN        CONFIG_EXAMPLE_MIC_GAIN
+#endif
+
+static i2s_chan_handle_t tx_handle = NULL;
+static i2s_chan_handle_t rx_handle = NULL;
+
+static esp_err_t i2s_driver_init(void)
+{
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM, I2S_ROLE_MASTER);
+    chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
+    ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &tx_handle, &rx_handle));
+    i2s_std_config_t std_cfg = {
+        .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(EXAMPLE_SAMPLE_RATE),
+        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
+        .gpio_cfg = {
+            .mclk = I2S_MCK_IO,
+            .bclk = I2S_BCK_IO,
+            .ws = I2S_WS_IO,
+            .dout = I2S_DO_IO,
+            .din = I2S_DI_IO,
+            .invert_flags = {
+                .mclk_inv = false,
+                .bclk_inv = false,
+                .ws_inv = false,
+            },
+        },
+    };
+    std_cfg.clk_cfg.mclk_multiple = EXAMPLE_MCLK_MULTIPLE;
+
+    ESP_ERROR_CHECK(i2s_channel_init_std_mode(tx_handle, &std_cfg));
+    ESP_ERROR_CHECK(i2s_channel_init_std_mode(rx_handle, &std_cfg));
+    ESP_ERROR_CHECK(i2s_channel_enable(tx_handle));
+    ESP_ERROR_CHECK(i2s_channel_enable(rx_handle));
+    return ESP_OK;
+}
 
 wav_codec_t *wav_file_open(const char *path_in, int mode)
 {
@@ -152,27 +203,30 @@ void stream_i2s_write_task(void *arg)
     player_handle_t *player = arg;
     uint16_t len;
     EventBits_t uxBits;
+	size_t bytes_write = 0;
 
     uint8_t *stream_buff = calloc(FRAME_SIZE, sizeof(uint8_t));
     if(!stream_buff){
         return;
     }
 
-    bsp_codec_dev_open(player->wav_codec->wav_info.sampleRate, player->wav_codec->wav_info.channels, player->wav_codec->wav_info.bits_per_sample);
+    // bsp_codec_dev_open(player->wav_codec->wav_info.sampleRate, player->wav_codec->wav_info.channels, player->wav_codec->wav_info.bits_per_sample);
 	//  bsp_codec_dev_open(16000, 2, 16);
-
+es8388_set_voice_mute(false);
     while (1) {
         len = read_ringbuf(player->stream_out_ringbuff, FRAME_SIZE, stream_buff);
         // ESP_LOGE(TAG, "ring buffer read len: %d", len);
         if(len > 0){
             if(player->audio_type == AUDIO_WAV_FILE_PLAY){
-                bsp_audio_play((int16_t *)stream_buff, len, portMAX_DELAY);
+                // bsp_audio_play((int16_t *)stream_buff, len, portMAX_DELAY);
+				i2s_channel_write(tx_handle, stream_buff, len, &bytes_write, 1000);
             }else if(player->audio_type == AUDIO_WAV_FILE_RECORD){
                 //write data to file
             }
         }else{
             memset(stream_buff, 0, FRAME_SIZE);
-            bsp_audio_play((int16_t *)stream_buff, FRAME_SIZE / 2, portMAX_DELAY);
+            // bsp_audio_play((int16_t *)stream_buff, FRAME_SIZE / 2, portMAX_DELAY);
+			i2s_channel_write(tx_handle, stream_buff, len, &bytes_write, 1000);
             vTaskDelay(200 / portTICK_PERIOD_MS);
             goto exit;
         }
@@ -247,37 +301,76 @@ void stream_i2s_read_task(void *arg)
     recorder_handle_t *recorder = arg;
 	uint16_t frame_cnt = 0;
 
-    uint8_t *stream_buff = calloc(FRAME_SIZE, sizeof(uint8_t));
-    if(!stream_buff){
-        return;
-    }
+    // uint8_t *stream_buff = calloc(FRAME_SIZE, sizeof(uint8_t));
+    // if(!stream_buff){
+    //     return;
+    // }
 
-    bsp_codec_dev_open(16000, 2, 16);
-	xTaskCreatePinnedToCore(&wav_file_write_task, "wav_file_write_task", 4 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
+    // bsp_codec_dev_open(16000, 2, 16);
+	// xTaskCreatePinnedToCore(&wav_file_write_task, "wav_file_write_task", 4 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
+	wav_codec_t *wav_codec = wav_file_open(recorder->file_uri, LFS2_O_WRONLY | LFS2_O_CREAT);
+	if(!wav_codec){
+			ESP_LOGE(TAG, "Wave file open failt.");
+		return;
+	}
+	recorder->wav_codec = wav_codec;
+
+    int *mic_data = malloc(EXAMPLE_RECV_BUF_SIZE);
+    if (!mic_data) {
+        ESP_LOGE(TAG, "[echo] No memory for read data buffer");
+        abort();
+    }
+    esp_err_t ret = ESP_OK;
+    size_t bytes_read = 0;
+    size_t bytes_write = 0;
+
+	i2s_driver_init();
+	audio_hal_codec_config_t audio_codec_cfg = AUDIO_CODEC_DEFAULT_CONFIG();
+	es8388_init(&audio_codec_cfg);
+    if (es8388_config_i2s(audio_codec_cfg.codec_mode, &(audio_codec_cfg.i2s_iface)) != ESP_OK) {
+        ESP_LOGE(TAG, "es8311 codec config i2s failed");
+        abort();
+    } else {
+        es8388_set_voice_volume(0);
+        es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START);
+        ESP_LOGI(TAG, "es8311 config i2s init success");
+    }
+	es8388_set_voice_mute(true);
+	// es8388_read_all();
 
     while (1) {
-        if(xRingbufferGetCurFreeSize(recorder->stream_in_ringbuff) >= FRAME_SIZE){
-			bsp_get_feed_data(true, (int16_t *)stream_buff, FRAME_SIZE / 2);
-			fill_ringbuf(recorder->stream_in_ringbuff, stream_buff, FRAME_SIZE);	
-			frame_cnt++;
+        // if(xRingbufferGetCurFreeSize(recorder->stream_in_ringbuff) >= FRAME_SIZE){
+			// bsp_get_feed_data(true, stream_buff, FRAME_SIZE);
+			// bsp_audio_play(stream_buff, FRAME_SIZE, portMAX_DELAY);
+			// // fill_ringbuf(recorder->stream_in_ringbuff, stream_buff, FRAME_SIZE);	
+			// frame_cnt++;
 			// ESP_LOGE(TAG, "frame cnt: %d", frame_cnt);
+
+			memset(mic_data, 0, EXAMPLE_RECV_BUF_SIZE);
+			ret = i2s_channel_read(rx_handle, mic_data, EXAMPLE_RECV_BUF_SIZE, &bytes_read, 1000);
+			// ret = i2s_channel_write(tx_handle, mic_data, EXAMPLE_RECV_BUF_SIZE, &bytes_write, 1000);
+			lfs2_file_write(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file, mic_data, EXAMPLE_RECV_BUF_SIZE);
+			frame_cnt++;
+			// ESP_LOGE(TAG, "freme cnt: %d", frame_cnt);
 			if(frame_cnt > recorder->total_frames){
 				xEventGroupSetBits(
 					recorder->recorder_event,    // The event group being updated.
 					EV_DEL_FILE_WRITE_TASK );// The bits being set.
 				break;
 			}
-			vTaskDelay(1 / portTICK_PERIOD_MS);
+			// vTaskDelay(1 / portTICK_PERIOD_MS);
 			// ESP_LOGE(TAG, "ring buffer read len: %d", len);		
-			}else{
-            vTaskDelay(2 / portTICK_PERIOD_MS);
-        }
+			// }else{
+            // vTaskDelay(2 / portTICK_PERIOD_MS);
+			// }
     }
 
-    bsp_codec_dev_close();
-    if(stream_buff){
-        free(stream_buff);
-    }
+    // bsp_codec_dev_close();
+    // if(stream_buff){
+    //     free(stream_buff);
+    // }
+	wav_file_close(wav_codec);
+	free(mic_data);
     ESP_LOGE(TAG, "stream in task end, RAM left: %ld", esp_get_free_heap_size());
     vTaskDelete(NULL);
 }
