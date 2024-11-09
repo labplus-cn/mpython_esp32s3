@@ -47,9 +47,9 @@ void recorder_record(const char *filename, int time)
     if(!recorder){
         recorder = calloc(1, sizeof(recorder_handle_t));
         recorder->recorder_event = xEventGroupCreate(); 
-        recorder->stream_in_ringbuff = xRingbufferCreate(RINGBUF_SIZE, RINGBUF_TYPE_BYTEBUF);    
+        recorder->stream_in_ringbuff = xRingbufferCreate(RECORD_RINGBUF_SIZE, RINGBUF_TYPE_BYTEBUF);    
     }else{
-        clear_ringbuf(recorder->stream_in_ringbuff);
+        clear_ringbuf(recorder->stream_in_ringbuff, RECORD_RINGBUF_SIZE);
     }
 
     recorder->time = time;
@@ -57,8 +57,12 @@ void recorder_record(const char *filename, int time)
         mp_warning(NULL, "Record time too long, will limit to 5s.");
         recorder->time = 5;
     }
+
+    recorder->wav_fmt.bits_per_sample = 16;
+    recorder->wav_fmt.channels = 2;
+    recorder->wav_fmt.sampleRate = 16000;
     // data_size = sample_rate * (bits_per_sampe / 8) * channels * time;
-    recorder->total_frames = recorder->time * (16000 * 2 * 16 / 8) / FRAME_SIZE;
+    recorder->total_frames = recorder->time * (recorder->wav_fmt.sampleRate * recorder->wav_fmt.channels * recorder->wav_fmt.bits_per_sample / 8) / RECORD_FRAME_SIZE;
     ESP_LOGE(TAG, "record total frame: %d, time: %d", recorder->total_frames, recorder->time);
     recorder->file_uri = filename;
     xTaskCreatePinnedToCore(&stream_i2s_read_task, "stream_i2s_read_task", 4 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);

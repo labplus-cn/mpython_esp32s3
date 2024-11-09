@@ -3,7 +3,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
-#include "freertos/ringbuf.h"
 #include "py/obj.h"
 #include "wav_codec.h"
 
@@ -42,10 +41,6 @@ int player_get_state(void);
 void player_set_vol(int vol);
 void player_increase_vol(void);
 void player_decrease_vol(void);
-
-void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, size_t len);
-uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t supply_bytes, uint8_t *buffer);
-void clear_ringbuf(RingbufHandle_t ring_buff);
 
 extern player_handle_t *player;
 

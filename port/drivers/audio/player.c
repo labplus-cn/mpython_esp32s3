@@ -64,12 +64,12 @@ void player_play(const char *uri)
         player = calloc(1, sizeof(player_handle_t));
         player->player_event = xEventGroupCreate(); 
         player->player_queue = xQueueCreate(10, sizeof(msg_t));  
-        player->stream_out_ringbuff = xRingbufferCreate(RINGBUF_SIZE, RINGBUF_TYPE_BYTEBUF);    
+        player->stream_out_ringbuff = xRingbufferCreate(STREAM_OUT_RINGBUF_SIZE, RINGBUF_TYPE_BYTEBUF);    
     }else{
         if(player->player_state == 1 || player->player_state == 2){
 
         }
-        clear_ringbuf(player->stream_out_ringbuff);
+        clear_ringbuf(player->stream_out_ringbuff, STREAM_OUT_RINGBUF_SIZE);
     }
 
     player->file_uri = uri;
@@ -173,13 +173,13 @@ void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, size_t len)
     }
 }
 
-uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t supply_bytes, uint8_t *buffer)
+uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t ringbuff_size, size_t supply_bytes, int8_t *buffer)
 {
     int ringBufRemainBytes = 0;
     size_t len = 0;
     void *temp = NULL;
 
-    ringBufRemainBytes = RINGBUF_SIZE - xRingbufferGetCurFreeSize(ring_buff); 
+    ringBufRemainBytes = ringbuff_size - xRingbufferGetCurFreeSize(ring_buff); 
 
     /* 1 从ringbuf中读解码器需要的数据量 */
     if (ringBufRemainBytes > 0)
@@ -203,13 +203,13 @@ uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t supply_bytes, uint8_t *b
     return len;
 }
 
-void clear_ringbuf(RingbufHandle_t ring_buff)
+void clear_ringbuf(RingbufHandle_t ring_buff, size_t ringbuff_size)
 {
     int ringBufRemainBytes = 0;
     size_t len;
     void *temp = NULL;
 
-    ringBufRemainBytes = RINGBUF_SIZE - xRingbufferGetCurFreeSize(ring_buff); //
+    ringBufRemainBytes = ringbuff_size - xRingbufferGetCurFreeSize(ring_buff); //
     temp = xRingbufferReceiveUpTo(ring_buff,  &len, 50 / portTICK_PERIOD_MS, ringBufRemainBytes);
     if(temp != NULL)
         vRingbufferReturnItem(ring_buff, (void *)temp);

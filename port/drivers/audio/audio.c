@@ -13,13 +13,13 @@ audio_handle_t *audio_handle = NULL;
 void audio_init(void)
 {
     if(!audio_handle){
-        // bsp_codec_dev_create();
+        bsp_codec_dev_create();
     }
 }
 
 void audio_deinit(void)
 {
     if(audio_handle){
-        // bsp_codec_dev_delete();
+        bsp_codec_dev_delete();
     }
 }

@@ -49,12 +49,12 @@
 #define GPIO_I2S_SDIN       (GPIO_NUM_40)
 #define GPIO_I2S_DOUT       (GPIO_NUM_38)
 
-#define RECORD_VOLUME   (30.0)
+#define RECORD_VOLUME   (35.0)
 /**
  * @brief player configurations
  *
  */
-#define PLAYER_VOLUME   (90)
+#define PLAYER_VOLUME   (100)
 
 /**
  * @brief ESP32-S3-HMI-DevKit power control IO

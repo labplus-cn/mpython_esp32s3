@@ -233,9 +233,7 @@ esp_err_t bsp_codec_dev_open(uint32_t sample_rate, int channel_format, int bits_
         };
 
         err = esp_codec_dev_open(codec_dev, &fs);
-        // esp_codec_dev_set_in_gain(codec_dev, RECORD_VOLUME);
-        esp_codec_dev_set_in_channel_gain(codec_dev, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(0), RECORD_VOLUME);
-        esp_codec_dev_set_in_channel_gain(codec_dev, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(1), RECORD_VOLUME);   
+        esp_codec_dev_set_in_gain(codec_dev, RECORD_VOLUME);  
         esp_codec_dev_set_out_vol(codec_dev, PLAYER_VOLUME);   
     }
     return err;
@@ -269,7 +267,7 @@ esp_err_t bsp_audio_get_play_vol(int *volume)
     return ESP_OK;
 }
 
-esp_err_t bsp_audio_play(const int16_t* data, int length, TickType_t ticks_to_wait)
+esp_err_t bsp_audio_play(const int8_t  *data, int length, TickType_t ticks_to_wait)
 {
     esp_err_t ret = ESP_OK;
     if (!codec_dev) {
@@ -282,7 +280,7 @@ esp_err_t bsp_audio_play(const int16_t* data, int length, TickType_t ticks_to_wa
 
 /* 做为afe is_get_raw_channel = true :16K 16bit 左声道 + 右声道，无ref, 
           is_get_raw_channel = false :16K 16bit 左声道 + 右声道 + 一路ref,*/
-esp_err_t bsp_get_feed_data(bool is_get_raw_channel, uint8_t *buffer, int buffer_len)
+esp_err_t bsp_get_feed_data(bool is_get_raw_channel, int8_t *buffer, int buffer_len)
 {
     esp_err_t ret = ESP_OK;
     int audio_chunksize;

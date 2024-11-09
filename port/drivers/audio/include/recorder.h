@@ -6,6 +6,8 @@
 #include "py/obj.h"
 #include "wav_codec.h"
 
+#define RECORD_FRAME_SIZE   (1000)
+#define RECORD_RINGBUF_SIZE (4000)
 typedef struct
 {
     wav_codec_t *wav_codec;
@@ -13,16 +15,13 @@ typedef struct
     const char *file_uri;
     uint8_t time;
     uint16_t total_frames;
+    wav_fmt_t wav_fmt;
     EventGroupHandle_t recorder_event;
     RingbufHandle_t stream_in_ringbuff;
 } recorder_handle_t;
 
 // typedef void* recorder_handle;
 void recorder_record(const char *filename, int time);
-
-void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, size_t len);
-uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t supply_bytes, uint8_t *buffer);
-void clear_ringbuf(RingbufHandle_t ring_buff);
 
 extern recorder_handle_t *recorder;
 
