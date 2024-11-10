@@ -37,7 +37,7 @@
 #define TOUCHPAD_NUM     10
 #elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
 #include "driver/touch_sensor.h"
-#define TOUCHPAD_NUM     14
+#define TOUCHPAD_NUM     15
 #endif
 
 typedef struct _mtp_obj_t {

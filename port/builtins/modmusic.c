@@ -318,7 +318,7 @@ static mp_obj_t mpython_music_play(size_t n_args, const mp_obj_t *pos_args, mp_m
     
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_music, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-        { MP_QSTR_pin,   MP_ARG_INT, {.u_int = 16} },
+        { MP_QSTR_pin,   MP_ARG_INT, {.u_int = 21} },
         { MP_QSTR_wait,  MP_ARG_BOOL, {.u_bool = true} },
         { MP_QSTR_loop,  MP_ARG_BOOL, {.u_bool = false} },
     };
