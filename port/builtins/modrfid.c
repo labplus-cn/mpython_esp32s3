@@ -5,9 +5,11 @@
 #include "py/mperrno.h"
 #include "py/mphal.h"
 #include "py/runtime.h"
-#include "extmod/machine_i2c.h"
+#include "extmod/modmachine.h"
 #include "esp_log.h"
-#include "mfrc522.h"
+#include "rfid/mfrc522.h"
+
+#if MICROPY_PY_RFID
 
 #define MFRC522_ADDR (47) 
 #define MAX_LEN (16)
@@ -32,7 +34,7 @@ static uint8_t sectorKeyA[16][6] = {
 		{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
 		{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, };
 
-STATIC mp_obj_t mfrc522_init(mp_obj_t i2c) {
+static mp_obj_t mfrc522_init(mp_obj_t i2c) {
     if(!i2c_obj)
         i2c_obj = (mp_obj_base_t *)MP_OBJ_TO_PTR(i2c);
     RFID_init();
@@ -40,7 +42,7 @@ STATIC mp_obj_t mfrc522_init(mp_obj_t i2c) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(mfrc522_init_obj, mfrc522_init);
 
-STATIC mp_obj_t mfrc522_find_card(void) {
+static mp_obj_t mfrc522_find_card(void) {
     unsigned char str[MAX_LEN];
 
 	if (RFID_findCard(PICC_REQIDL, str) == MI_OK)
@@ -52,7 +54,7 @@ STATIC mp_obj_t mfrc522_find_card(void) {
 }
 MP_DEFINE_CONST_FUN_OBJ_0(mfrc522_find_card_obj, mfrc522_find_card);
 
-STATIC mp_obj_t mfrc522_anticoll(void) {
+static mp_obj_t mfrc522_anticoll(void) {
     unsigned char str[MAX_LEN];
     // uint8_t serNum[5];       // 4字节卡序列号，第5字节为校验字节
 
@@ -71,7 +73,7 @@ STATIC mp_obj_t mfrc522_anticoll(void) {
 }
 MP_DEFINE_CONST_FUN_OBJ_0(mfrc522_anticoll_obj, mfrc522_anticoll);
 
-STATIC mp_obj_t mfrc522_select_tag(mp_obj_t serialNum) {
+static mp_obj_t mfrc522_select_tag(mp_obj_t serialNum) {
     // unsigned char str[MAX_LEN];
     uint8_t serNum[5];       // 4字节卡序列号，第5字节为校验字节
     mp_obj_t *elem;\
@@ -92,7 +94,7 @@ STATIC mp_obj_t mfrc522_select_tag(mp_obj_t serialNum) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(mfrc522_select_tag_obj, mfrc522_select_tag);
 
-STATIC mp_obj_t mfrc522_auth(mp_obj_t serialNum, mp_obj_t block) {
+static mp_obj_t mfrc522_auth(mp_obj_t serialNum, mp_obj_t block) {
     uint8_t serNum[5];       // 4字节卡序列号，第5字节为校验字节
     mp_obj_t *elem;
     int _block = mp_obj_get_int(block);
@@ -112,18 +114,18 @@ STATIC mp_obj_t mfrc522_auth(mp_obj_t serialNum, mp_obj_t block) {
 MP_DEFINE_CONST_FUN_OBJ_2(mfrc522_auth_obj, mfrc522_auth);
 
 /* 以下所有操作须先完成寻卡及卡密验证工作先*/
-STATIC mp_obj_t mfrc522_read_block(mp_obj_t block) {
+static mp_obj_t mfrc522_read_block(mp_obj_t block) {
     int _block = mp_obj_get_int(block);
     vstr_t vstr;
     vstr_init_len(&vstr, 16);
     if (RFID_readBlock(_block, (uint8_t*)vstr.buf) == MI_OK)
-        return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);
+        return mp_obj_new_str_from_vstr(&vstr);
 
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_1(mfrc522_read_block_obj, mfrc522_read_block);
 
-STATIC mp_obj_t mfrc522_write_block(mp_obj_t block, mp_obj_t buf_in) {
+static mp_obj_t mfrc522_write_block(mp_obj_t block, mp_obj_t buf_in) {
     int _block = mp_obj_get_int(block);
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(buf_in, &bufinfo, MP_BUFFER_READ);
@@ -134,7 +136,7 @@ STATIC mp_obj_t mfrc522_write_block(mp_obj_t block, mp_obj_t buf_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_2(mfrc522_write_block_obj, mfrc522_write_block);
 
-STATIC mp_obj_t mfrc522_increment(mp_obj_t block, mp_obj_t value) {
+static mp_obj_t mfrc522_increment(mp_obj_t block, mp_obj_t value) {
     int _block = mp_obj_get_int(block);
     int32_t pvalue = mp_obj_get_int(value);
 
@@ -145,7 +147,7 @@ STATIC mp_obj_t mfrc522_increment(mp_obj_t block, mp_obj_t value) {
 }
 MP_DEFINE_CONST_FUN_OBJ_2(mfrc522_increment_obj, mfrc522_increment);
 
-STATIC mp_obj_t mfrc522_decrement(mp_obj_t block, mp_obj_t value) {
+static mp_obj_t mfrc522_decrement(mp_obj_t block, mp_obj_t value) {
     int _block = mp_obj_get_int(block);
     int32_t pvalue = mp_obj_get_int(value);
 
@@ -156,7 +158,7 @@ STATIC mp_obj_t mfrc522_decrement(mp_obj_t block, mp_obj_t value) {
 }
 MP_DEFINE_CONST_FUN_OBJ_2(mfrc522_decrement_obj, mfrc522_decrement);
 
-STATIC mp_obj_t mfrc522_set_purse(mp_obj_t block) {
+static mp_obj_t mfrc522_set_purse(mp_obj_t block) {
     uint8_t _block = (uint8_t)mp_obj_get_int(block);
     uint8_t data1[16] = { 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 
                           _block, ~_block, _block, ~_block };
@@ -167,7 +169,7 @@ STATIC mp_obj_t mfrc522_set_purse(mp_obj_t block) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(mfrc522_set_purse_obj, mfrc522_set_purse);
 
-STATIC mp_obj_t mfrc522_balance(mp_obj_t block) {
+static mp_obj_t mfrc522_balance(mp_obj_t block) {
     int _block = mp_obj_get_int(block);
     uint8_t buff[4];
 
@@ -178,7 +180,7 @@ STATIC mp_obj_t mfrc522_balance(mp_obj_t block) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(mfrc522_balance_obj, mfrc522_balance);
 
-STATIC mp_obj_t mfrc522_halt(void) {
+static mp_obj_t mfrc522_halt(void) {
     if (RFID_halt() == MI_OK)
         return MP_OBJ_NEW_SMALL_INT(1);
 
@@ -186,7 +188,7 @@ STATIC mp_obj_t mfrc522_halt(void) {
 }
 MP_DEFINE_CONST_FUN_OBJ_0(mfrc522_halt_obj, mfrc522_halt);
 
-STATIC const mp_map_elem_t mpython_rfid_locals_dict_table[] = {
+static const mp_map_elem_t mpython_rfid_locals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_rfid)},
     {MP_OBJ_NEW_QSTR(MP_QSTR_init), (mp_obj_t)&mfrc522_init_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_find_card), (mp_obj_t)&mfrc522_find_card_obj},
@@ -202,7 +204,7 @@ STATIC const mp_map_elem_t mpython_rfid_locals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR_halt), (mp_obj_t)&mfrc522_halt_obj},
 };
 
-STATIC MP_DEFINE_CONST_DICT(mpython_rfid_locals_dict, mpython_rfid_locals_dict_table);
+static MP_DEFINE_CONST_DICT(mpython_rfid_locals_dict, mpython_rfid_locals_dict_table);
 
 const mp_obj_module_t mp_module_rfid = {
     .base = {&mp_type_module},
@@ -211,7 +213,8 @@ const mp_obj_module_t mp_module_rfid = {
 
 void writeReg(uint8_t reg_addr, uint8_t val)
 {
-    mp_machine_i2c_p_t *i2c_p = (mp_machine_i2c_p_t*)i2c_obj->type->protocol;
+    // mp_machine_i2c_p_t *i2c_p = (mp_machine_i2c_p_t*)i2c_obj->type->protocol;
+    mp_machine_i2c_p_t *i2c_p = (mp_machine_i2c_p_t *)MP_OBJ_TYPE_GET_SLOT(i2c_obj->type, protocol);
     uint8_t temp[2];
     temp[0] = (uint8_t)reg_addr;
     temp[1] = val;
@@ -228,7 +231,8 @@ void writeReg(uint8_t reg_addr, uint8_t val)
 uint8_t readReg(uint8_t reg_addr)
 {
 	uint8_t buff; 
-    mp_machine_i2c_p_t *i2c_p = (mp_machine_i2c_p_t*)i2c_obj->type->protocol;
+    // mp_machine_i2c_p_t *i2c_p = (mp_machine_i2c_p_t*)i2c_obj->type->protocol;
+    mp_machine_i2c_p_t *i2c_p = (mp_machine_i2c_p_t *)MP_OBJ_TYPE_GET_SLOT(i2c_obj->type, protocol);
 
     uint8_t _reg_addr = reg_addr;
     mp_machine_i2c_buf_t buf = {.len = 1, .buf = (uint8_t*)&_reg_addr};
@@ -250,3 +254,7 @@ uint8_t readReg(uint8_t reg_addr)
 
   return(buff);
 }
+
+MP_REGISTER_EXTENSIBLE_MODULE(MP_QSTR_rfid, mp_module_rfid);
+
+#endif // MICROPY_PY_RFID

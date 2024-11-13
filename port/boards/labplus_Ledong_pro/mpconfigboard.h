@@ -17,3 +17,7 @@
 #ifndef MICROPY_PY_AUDIO
 #define MICROPY_PY_AUDIO                    (1)
 #endif
+
+#ifndef MICROPY_PY_RFID
+#define MICROPY_PY_RFID                    (1)
+#endif

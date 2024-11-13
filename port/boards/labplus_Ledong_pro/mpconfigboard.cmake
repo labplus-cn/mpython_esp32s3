@@ -36,6 +36,7 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/drivers/startup/i2c_master.c
     ${MPY_PORT_DIR}/drivers/startup/oled.c
     ${MPY_PORT_DIR}/drivers/startup/startup.c 
+    ${MPY_PORT_DIR}/drivers/rfid/mfrc522.c
     ${MPY_PORT_DIR}/lib/utils/pyexec.c
     ${MPY_PORT_DIR}/builtins/modmusictunes.c
     ${MPY_PORT_DIR}/builtins/modmusic.c
@@ -44,6 +45,7 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/builtins/machine_touchpad.c
     ${MPY_PORT_DIR}/builtins/modframebuf.c
     ${MPY_PORT_DIR}/builtins/modaudio.c
+    ${MPY_PORT_DIR}/builtins/modrfid.c
     # ${MPY_PORT_DIR}/builtins/mod_audio/audio_player.c
     # ${MPY_PORT_DIR}/builtins/mod_audio/audio_recorder.c 
     # ${MPY_PORT_DIR}/builtins/mod_audio/vfs_stream.c 

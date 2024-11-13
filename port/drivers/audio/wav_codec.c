@@ -263,7 +263,7 @@ void stream_i2s_read_task(void *arg)
     while (1) {
         while(xRingbufferGetCurFreeSize(recorder->stream_in_ringbuff) >= RECORD_FRAME_SIZE){
 			bsp_get_feed_data(true, stream_buff, RECORD_FRAME_SIZE);
-			bsp_audio_play(stream_buff, RECORD_FRAME_SIZE, portMAX_DELAY);
+			// bsp_audio_play(stream_buff, RECORD_FRAME_SIZE, portMAX_DELAY);
 			xRingbufferSend(recorder->stream_in_ringbuff, stream_buff, RECORD_FRAME_SIZE, 100/portTICK_PERIOD_MS);
 			frame_cnt++;
 			// ESP_LOGE(TAG, "freme cnt: %d", frame_cnt);
