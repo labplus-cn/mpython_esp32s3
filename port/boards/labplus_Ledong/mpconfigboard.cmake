@@ -15,7 +15,7 @@ endif()
 
 set(MICROPY_SOURCE_BOARD
     ${MICROPY_BOARD_DIR}/main.c
-    ${MPY_PORT_DIR}/drivers/startup/00030.c
+    ${MPY_PORT_DIR}/drivers/startup/logo.c
     ${MPY_PORT_DIR}/drivers/startup/i2c_master.c
     ${MPY_PORT_DIR}/drivers/startup/oled.c
     ${MPY_PORT_DIR}/drivers/startup/startup.c 

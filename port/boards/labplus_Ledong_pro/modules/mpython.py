@@ -7,6 +7,7 @@
 # history:
 # V1.1 add oled draw function,add buzz.freq().  by tangliufeng
 # V1.2 add servo/ui class,by tangliufeng
+# ledong_pro 202411
 
 from machine import I2C, PWM, Pin, ADC, TouchPad
 from ssd1106 import SSD1106_I2C
@@ -1074,6 +1075,7 @@ class Touch:
 
     def read(self):
         return self.__touch_pad.read()
+    
 # touchpad
 touchpad_p = touchPad_P = Touch(Pin(9))
 touchpad_y = touchPad_Y = Touch(Pin(10))
@@ -1093,8 +1095,11 @@ class Ledong_shield(object):
         self.i2c.writeto(self.i2c_addr, b'\x06\x01', True)
 
     def get_battery_level(self):
-        self.i2c.writeto(self.i2c_addr, b'\x05', True)
-        return self.i2c.readfrom(self.i2c_addr, 1)[0]
+        self.i2c.writeto(self.i2c_addr, b'\x03', True)
+        tmp = self.i2c.readfrom(self.i2c_addr, 2)
+        data = tmp[1] << 8 +  tmp[0]
+        data = max(min(data, 4200), 3300)
+        return data
 
 ledong_shield = Ledong_shield()
 

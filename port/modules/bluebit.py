@@ -1137,22 +1137,177 @@ class SoilHumiditySensor():
         '''设置土壤湿度传感器阈值，模拟值'''
         self.threshold = threshold
 
+    def read(self):
+        _soil_humidity =  self.pin.read_analog()
+        return int(numberMap(_soil_humidity,0,4095,4095,0))
 
-    def __init__(self, tx=Pin.P16, rx=Pin.P15, uart_num=1):
-        self.uart = UART(uart_num, baudrate=115200, rx=rx, tx=tx)
-        self.identifying_word = -1
+class FanPWM():
+    def __init__(self, pin):
+        self.pin = MPythonPin(pin, PinMode.PWM)
+        self.pwm(0)
 
-    def any(self):
-        sleep_ms(10)
-        if(self.uart.any()):
-            self.recognition()
-            return True
+    def pwm(self,num):
+        self.pin.write_analog(int(numberMap(num,0,100,0,1023)))
+
+
+
+'''
+编码电机
+'''
+
+MOTOR_right = const(0x01)
+"""
+M1电机编号，0x01
+"""
+
+MOTOR_left = const(0x02)
+"""
+M2电机编号，0x02
+"""
+i2c_scan = i2c.scan()
+
+_speed_buf = {}
+
+class EncoderMotor(object):
+    def __init__(self):
+        self.batch = -1 
+        if 18 in i2c_scan:
+            # 编码电机(新)
+            self.i2c_addr = 18
+            self.batch = 1 
+            self.stop()
+            print('编码电机')
         else:
-            return False
-    
-    def recognition(self):
-        try:
-            self.identifying_word = int(self.uart.read().decode('UTF-8','ignore'))
-        except Exception as e:
-            self.identifying_word = -1
+            print('编码电机有故障！')
+        
+    def stop(self):
+        if (self.batch == 1):
+            attempts=0
+            while True:
+                try:
+                    i2c.writeto(self.i2c_addr, bytearray([1]))
+                except Exception as e:
+                    attempts = attempts + 1
+                    if attempts > 2:
+                        break
+                else:
+                    break
+
+    def move(self, speed_l, speed_r):
+        """
+        设置电机速度
+        :param int motor_no: 控制电机编号，可以使用 ``MOTOR_left``, ``MOTOR_right`` ,或者直接写入电机编号。
+        :param int speed: 电机速度，范围-100~100，负值代表反转。
+        """
+        """
+        设置小车移动速度，可前进后退
+        :param int speed_l: 左电机速度 -100 -- 100。
+        :param int speed_r: 右电机速度 -100 -- 100。
+        """
+        if (self.batch == 1):
+            if speed_l < -100:
+                speed_l = -100
+            if speed_r < -100:
+                speed_r = -100
+            if speed_l > 100:
+                speed_l = 100
+            if speed_r > 100:
+                speed_r = 100
+     
+            attempts=0
+            while True:
+                try:
+                    i2c.writeto(self.i2c_addr, bytearray([2, speed_l, speed_r]))
+                except Exception as e:
+                    attempts = attempts + 1
+                    if attempts > 2:
+                        break
+                else:
+                    break
+
+    def turn_angle(self, dir, speed, angle):
+        """
+        设置电机转向 
+        :param int dir: 左转： 3 右转： 4
+        :param int speed: 左电机速度 0 -- 100。
+        :param int angle: 左电机速度 0 -- 360
+        """
+        if (self.batch == 1):
+            if speed < 0:
+                speed = 0
+            if speed > 100:
+                speed = 100
+            if dir !=3 and dir != 4:
+                return
+            tmp = [0]*2
+            tmp[0] = angle & 0xff
+            tmp[1] = (angle >> 8) & 0xff
+         
+            attempts=0
+            while True:
+                try:
+                    i2c.writeto(self.i2c_addr, bytearray([dir, speed, tmp[0], tmp[1]]))
+                except Exception as e:
+                    attempts = attempts + 1
+                    if attempts > 2:
+                        break
+                else:
+                    break
+        elif (self.batch == 0):
+            print('编码电机才支持')
             pass
+
+    def move_distance(self, speed, distance):
+        """
+        设置小车移动动指定距离，单位:mm 可前进后退
+        :param int speed: 电机速度 -100 -- 100。
+        :param int distance: 移动距离 0 --- 65535 mm
+        """
+        distance = distance*10
+        if (self.batch == 1):
+            if distance < 0:
+                distance = 0
+            if distance > 65535:
+                distance = 65535
+            tmp = [0]*2
+            tmp[0] = distance & 0xff
+            tmp[1] = (distance >> 8) & 0xff
+            attempts=0
+            while True:
+                try:
+                    i2c.writeto(self.i2c_addr, bytearray([5, speed, tmp[0], tmp[1]]))
+                except Exception as e:
+                    attempts = attempts + 1
+                    if attempts > 2:
+                        break
+                else:
+                    break
+        elif (self.batch == 0):
+            print('新编码电机才支持')
+            return
+
+    def set_correct(self, correct):
+        """
+        设置小车移动指定距离可转向时修正系数，以修正精确度
+        :param int correct: 修正系数 -100 -- 100
+        """
+        if (self.batch == 1):
+            if correct < -100:
+                correct = -100
+            if correct > 100:
+                correct = 100
+            attempts=0
+            while True:
+                try:
+                    i2c.writeto(self.i2c_addr, bytearray([6, correct]))
+                except Exception as e:
+                    attempts = attempts + 1
+                    if attempts > 2:
+                        break
+                else:
+                    break
+        elif (self.batch == 0):
+            print('新编码电机才支持')
+            return
+
+# encoder_motor = EncoderMotor()
