@@ -59,6 +59,7 @@ static const mtp_obj_t touchpad_obj[] = {
     {{&machine_touchpad_type}, GPIO_NUM_33, TOUCH_PAD_NUM8},
     {{&machine_touchpad_type}, GPIO_NUM_32, TOUCH_PAD_NUM9},
     #elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
+    {{&machine_touchpad_type}, GPIO_NUM_4, TOUCH_PAD_NUM0}, //用于占位
     {{&machine_touchpad_type}, GPIO_NUM_1, TOUCH_PAD_NUM1},
     {{&machine_touchpad_type}, GPIO_NUM_2, TOUCH_PAD_NUM2},
     {{&machine_touchpad_type}, GPIO_NUM_3, TOUCH_PAD_NUM3},
