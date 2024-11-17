@@ -6,7 +6,7 @@
 #include "py/obj.h"
 #include "wav_codec.h"
 
-#define READ_RINGBUF_BLOCK_SIZE    (500)
+#define READ_RINGBUF_BLOCK_SIZE    (1000)
 #define READ_RINGBUF_BLOCK_NUM      (4)
 
 #define EV_RECORD_END       1
@@ -19,7 +19,7 @@ typedef struct
     uint8_t time;
     uint16_t total_frames;
     wav_fmt_t wav_fmt;
-    QueueHandle_t record_queue;
+    EventGroupHandle_t recorder_event;
     ringbuf_handle_t record_ringbuff;
 } recorder_handle_t;
 

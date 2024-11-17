@@ -200,7 +200,7 @@ void wav_file_write_task(void *arg)
 {
 	ESP_LOGE(TAG, "wav file write task begin, RAM left: %ld", esp_get_free_heap_size());
     recorder_handle_t *recorder = arg;
-	msg_t msg;
+	EventBits_t uxBits;
 	uint16_t len = 0;
 
     int8_t *buffer = calloc(READ_RINGBUF_BLOCK_SIZE * 2, sizeof(int8_t));
@@ -238,14 +238,17 @@ void wav_file_write_task(void *arg)
 			// lfs2_file_sync(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file);
 		}
 
-		if(xQueueReceive(recorder->record_queue, &msg, 5 / portTICK_PERIOD_MS )){ 
-			if(msg.type == IO_MSG_TYPE_RECORD_END){
-				goto exit;
-			}
+		uxBits = xEventGroupWaitBits(
+				recorder->recorder_event,    // The event group being tested.
+				EV_RECORD_END,  // The bits within the event group to wait for.
+				pdTRUE,         // BIT_0 and BIT_4 should be cleared before returning.
+				pdFALSE,         // not wait for both bits, either bit will do.
+				2 / portTICK_PERIOD_MS ); // Wait a maximum of 100ms for either bit to be set.
+		if( ( uxBits & EV_RECORD_END) ==  EV_RECORD_END ){
+			break;
 		}  
     }
 
-exit:
 	wav_file_close(wav_codec);
 	free(buffer);
 	ESP_LOGE(TAG, "wav file write task end, RAM left: %ld", esp_get_free_heap_size());
@@ -258,30 +261,29 @@ void stream_i2s_read_task(void *arg)
     recorder_handle_t *recorder = arg;
 	uint16_t frame_cnt = 0;
 	int8_t *stream_buff = NULL;
-	msg_t msg;
+	size_t ringBufFreeBytes;
 
 	do{
 		stream_buff = calloc(READ_RINGBUF_BLOCK_SIZE, sizeof(int8_t));
-		if(!stream_buff){
-			break;
-		}
+		if(!stream_buff){ break; }
 
 		rb_reset(recorder->record_ringbuff);
-
-    while (1) {
-        while(xRingbufferGetCurFreeSize(recorder->stream_in_ringbuff) >= RECORD_FRAME_SIZE){
-			bsp_get_feed_data(true, stream_buff, RECORD_FRAME_SIZE);
-			// bsp_audio_play(stream_buff, RECORD_FRAME_SIZE, portMAX_DELAY);
-			xRingbufferSend(recorder->stream_in_ringbuff, stream_buff, RECORD_FRAME_SIZE, 100/portTICK_PERIOD_MS);
-			frame_cnt++;
-			// ESP_LOGE(TAG, "freme cnt: %d", frame_cnt);
-			if(frame_cnt > recorder->total_frames){
-				xEventGroupSetBits(
-					recorder->recorder_event,    // The event group being updated.
-					EV_DEL_FILE_WRITE_TASK );// The bits being set.
-				goto exit;
+		bsp_codec_dev_open(recorder->wav_fmt.sampleRate, recorder->wav_fmt.channels, recorder->wav_fmt.bits_per_sample);
+		xTaskCreatePinnedToCore(&wav_file_write_task, "wav_file_write_task", 4 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
+		while (1) {
+			ringBufFreeBytes = rb_bytes_available(recorder->record_ringbuff);
+			if( ringBufFreeBytes >= READ_RINGBUF_BLOCK_SIZE){
+				bsp_get_feed_data(true, stream_buff, READ_RINGBUF_BLOCK_SIZE);
+				bsp_audio_play(stream_buff, READ_RINGBUF_BLOCK_SIZE, portMAX_DELAY);
+				rb_write(recorder->record_ringbuff, (char *)stream_buff, READ_RINGBUF_BLOCK_SIZE, 100/portTICK_PERIOD_MS);
+				// ESP_LOGE(TAG, "frame cnt: %d", frame_cnt);
+				frame_cnt++;
+				if(frame_cnt > recorder->total_frames){
+					xEventGroupSetBits(recorder->recorder_event, EV_RECORD_END );
+					break;
+				}
+				vTaskDelay(2 / portTICK_PERIOD_MS);
 			}
-			vTaskDelay(2 / portTICK_PERIOD_MS);
 		}
 	}while(0);
 

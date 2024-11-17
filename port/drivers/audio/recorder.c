@@ -48,7 +48,7 @@ void recorder_record(const char *filename, int time)
 {
     if(!recorder){
         recorder = calloc(1, sizeof(recorder_handle_t));
-        recorder->record_queue = xQueueCreate(1, sizeof(msg_t));
+        recorder->recorder_event = xEventGroupCreate(); 
         recorder->record_ringbuff = rb_create(READ_RINGBUF_BLOCK_SIZE, READ_RINGBUF_BLOCK_NUM);   
     }
 
