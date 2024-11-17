@@ -28,6 +28,7 @@
 #include "audio.h"
 #include "player.h"
 #include "recorder.h"
+#include "msg.h"
 
 static const char *TAG = "wav_codec";
 
@@ -79,7 +80,8 @@ void wav_file_close(wav_codec_t *wav_codec)
 		free(wav_codec);
 	}
 }
-		
+
+/*
 void wav_file_read_task(void *arg)
 {
 	// ESP_LOGE(TAG, "wav decodec task begin, RAM left: %ld", esp_get_free_heap_size());
@@ -87,49 +89,53 @@ void wav_file_read_task(void *arg)
 	size_t len = 0;
 	EventBits_t uxBits;
 	size_t ringBufFreeBytes = 0;
+	int8_t *buffer = NULL;
+	wav_codec_t *wav_codec = NULL;
 
-    int8_t *buffer = calloc(STREAM_OUT_FRAME_SIZE, sizeof(int8_t));
-	if(!buffer){
-		return;
-	}
+	do{
+		buffer = calloc(STREAM_OUT_FRAME_SIZE, sizeof(int8_t));
+		if(!buffer){ break; }
 
-	wav_codec_t *wav_codec = wav_file_open(player->file_uri, LFS2_O_RDONLY);
-	if(!wav_codec){
-		ESP_LOGE(TAG, "Wave file open failt.");
-		return;
-	}
-	player->wav_codec = wav_codec;
+		wav_codec = wav_file_open(player->file_uri, LFS2_O_RDONLY);
+		if(!wav_codec){ break; }
+		player->wav_codec = wav_codec;
 
-	// len = lfs2_file_read(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file, buffer, STREAM_OUT_FRAME_SIZE);
-	// xRingbufferSend(player->stream_out_ringbuff, buffer, len, 100/portTICK_PERIOD_MS);
+		if(!wav_codec_ringbuff){
+			wav_codec_ringbuff = xRingbufferCreate(STREAM_OUT_RINGBUF_SIZE, RINGBUF_TYPE_BYTEBUF);
+			if(!wav_codec_ringbuff){ break; }
+		}else{
+			clear_ringbuf(wav_codec_ringbuff, STREAM_OUT_RINGBUF_SIZE);
+		}
 
-	xTaskCreatePinnedToCore(&stream_i2s_write_task, "stream_out", 5 * 1024, (void*)player, 8, &player->stream_i2s_write_task, CORE_NUM1);
+		xTaskCreatePinnedToCore(&stream_i2s_write_task, "stream_out", 5 * 1024, (void*)player, 8, &player->stream_i2s_write_task, CORE_NUM1);
 
-    while (1) {
-		ringBufFreeBytes = xRingbufferGetCurFreeSize(player->stream_out_ringbuff);
-		if( ringBufFreeBytes >= STREAM_OUT_FRAME_SIZE){
-			len = lfs2_file_read(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file, buffer, STREAM_OUT_FRAME_SIZE);
-			if(len > 0){
-				xRingbufferSend(player->stream_out_ringbuff, (const void *)buffer, len, 100/portTICK_PERIOD_MS);
+		while (1) {
+			ringBufFreeBytes = xRingbufferGetCurFreeSize(wav_codec_ringbuff);
+			if( ringBufFreeBytes >= STREAM_OUT_FRAME_SIZE){
+				len = lfs2_file_read(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file, buffer, STREAM_OUT_FRAME_SIZE);
+				if(len > 0){
+					xRingbufferSend(wav_codec_ringbuff, (const void *)buffer, len, 100/portTICK_PERIOD_MS);
+				}
+				
+				if(len < STREAM_OUT_FRAME_SIZE){  //文件读完了
+					xEventGroupSetBits(
+						player->player_event,    // The event group being updated.
+						EV_READ_END );// The bits being set.
+					break;
+				}
 			}
-			
-			if(len < STREAM_OUT_FRAME_SIZE){  //文件读完了
-				xEventGroupSetBits(
-					player->player_event,    // The event group being updated.
-					EV_DEL_STREAM_OUT_TASK );// The bits being set.
-				break;
+			uxBits = xEventGroupWaitBits(    
+						player->player_event,    // The event group being tested.
+						EV_PLAY_STOP,  // The bits within the event group to wait for.
+						pdTRUE,         // BIT_0 and BIT_4 should be cleared before returning.
+						pdFALSE,         // not wait for both bits, either bit will do.
+						10 / portTICK_PERIOD_MS ); // Wait a maximum of 100ms for either bit to be set.
+			if(uxBits & EV_PLAY_STOP){ //Has get stop event.
+				goto exit;
 			}
 		}
-		uxBits = xEventGroupWaitBits(    
-					player->player_event,    // The event group being tested.
-					EV_DEL_FILE_READ_TASK,  // The bits within the event group to wait for.
-					pdTRUE,         // BIT_0 and BIT_4 should be cleared before returning.
-					pdFALSE,         // not wait for both bits, either bit will do.
-					10 / portTICK_PERIOD_MS ); // Wait a maximum of 100ms for either bit to be set.
-		if(uxBits & EV_DEL_FILE_READ_TASK){ //Has get stop event.
-			goto exit;
-		}
-    }
+	}while(0);
+
 exit:
 	wav_file_close(wav_codec);
 	free(buffer);
@@ -151,7 +157,7 @@ void stream_i2s_write_task(void *arg)
 
     bsp_codec_dev_open(player->wav_codec->wav_info.sampleRate, player->wav_codec->wav_info.channels, player->wav_codec->wav_info.bits_per_sample);
     while (1) {
-        len = read_ringbuf(player->stream_out_ringbuff, STREAM_OUT_RINGBUF_SIZE, STREAM_OUT_FRAME_SIZE, stream_buff);
+        len = read_ringbuf(wav_codec_ringbuff, STREAM_OUT_RINGBUF_SIZE, STREAM_OUT_FRAME_SIZE, stream_buff);
         // ESP_LOGE(TAG, "ring buffer read len: %d", len);
         if(len > 0){
             if(player->audio_type == AUDIO_WAV_FILE_PLAY){
@@ -167,17 +173,20 @@ void stream_i2s_write_task(void *arg)
         }
         uxBits = xEventGroupWaitBits(
                     player->player_event,    // The event group being tested.
-                    EV_DEL_STREAM_OUT_TASK,  // The bits within the event group to wait for.
+                    EV_READ_END,  // The bits within the event group to wait for.
                     pdTRUE,         // BIT_0 and BIT_4 should be cleared before returning.
                     pdFALSE,         // not wait for both bits, either bit will do.
                     5 / portTICK_PERIOD_MS ); // Wait a maximum of 100ms for either bit to be set.
-		if(uxBits & EV_DEL_STREAM_OUT_TASK){
+		if(uxBits & EV_READ_END){
             vTaskDelay(200 / portTICK_PERIOD_MS);
 			goto exit;
         }
     }
 
 exit:
+	if(wav_codec_ringbuff){
+		vRingbufferDelete(wav_codec_ringbuff);
+	}
     bsp_codec_dev_close();
     if(stream_buff){
         free(stream_buff);
@@ -185,16 +194,16 @@ exit:
     // ESP_LOGE(TAG, "stream out task end, RAM left: %ld", esp_get_free_heap_size());
     player->stream_i2s_write_task = NULL;
     vTaskDelete(NULL);
-}
+}*/
 
 void wav_file_write_task(void *arg)
 {
 	ESP_LOGE(TAG, "wav file write task begin, RAM left: %ld", esp_get_free_heap_size());
     recorder_handle_t *recorder = arg;
-	EventBits_t uxBits;
+	msg_t msg;
 	uint16_t len = 0;
 
-    int8_t *buffer = calloc(RECORD_FRAME_SIZE * 2, sizeof(int8_t));
+    int8_t *buffer = calloc(READ_RINGBUF_BLOCK_SIZE * 2, sizeof(int8_t));
 	if(!buffer){
 		ESP_LOGE(TAG, "buffer calloc failt.");
 		return;
@@ -217,26 +226,23 @@ void wav_file_write_task(void *arg)
 		return;
 	}
 		
-	wav_head_init(wav_header, recorder->wav_fmt.sampleRate, recorder->wav_fmt.bits_per_sample, recorder->wav_fmt.channels, recorder->total_frames * RECORD_FRAME_SIZE);
+	wav_head_init(wav_header, recorder->wav_fmt.sampleRate, recorder->wav_fmt.bits_per_sample, recorder->wav_fmt.channels, recorder->total_frames * READ_RINGBUF_BLOCK_SIZE);
 	lfs2_file_write(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file, (uint8_t *)wav_header, sizeof(wav_header_t));
 	// lfs2_file_sync(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file);
 	free(wav_header);
 
     while (1) {
-		len = read_ringbuf(recorder->stream_in_ringbuff, RECORD_RINGBUF_SIZE, RECORD_FRAME_SIZE * 2, buffer);
+		len = rb_read(recorder->record_ringbuff, (char *)buffer, READ_RINGBUF_BLOCK_SIZE, 100/portTICK_PERIOD_MS);
 		if(len > 0){
 			lfs2_file_write(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file, buffer, len);
 			// lfs2_file_sync(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file);
 		}
-		uxBits = xEventGroupWaitBits(    
-					recorder->recorder_event,    // The event group being tested.
-					EV_DEL_FILE_WRITE_TASK,  // The bits within the event group to wait for.
-					pdTRUE,         // BIT_0 and BIT_4 should be cleared before returning.
-					pdFALSE,         // not wait for both bits, either bit will do.
-					2 / portTICK_PERIOD_MS ); // Wait a maximum of 100ms for either bit to be set.
-		if(uxBits & EV_DEL_FILE_WRITE_TASK){ //Has get stop event.
-			goto exit;
-		}
+
+		if(xQueueReceive(recorder->record_queue, &msg, 5 / portTICK_PERIOD_MS )){ 
+			if(msg.type == IO_MSG_TYPE_RECORD_END){
+				goto exit;
+			}
+		}  
     }
 
 exit:
@@ -251,32 +257,37 @@ void stream_i2s_read_task(void *arg)
     ESP_LOGE(TAG, "stream in task begin, RAM left: %ld", esp_get_free_heap_size());
     recorder_handle_t *recorder = arg;
 	uint16_t frame_cnt = 0;
+	int8_t *stream_buff = NULL;
+	msg_t msg;
 
-    int8_t *stream_buff = calloc(RECORD_FRAME_SIZE, sizeof(int8_t));
-    if(!stream_buff){
-        return;
-    }
-
-    bsp_codec_dev_open(recorder->wav_fmt.sampleRate, recorder->wav_fmt.channels, recorder->wav_fmt.bits_per_sample);
-	xTaskCreatePinnedToCore(&wav_file_write_task, "wav_file_write_task", 4 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
-
-    while (1) {
-        while(xRingbufferGetCurFreeSize(recorder->stream_in_ringbuff) >= RECORD_FRAME_SIZE){
-			bsp_get_feed_data(true, stream_buff, RECORD_FRAME_SIZE);
-			bsp_audio_play(stream_buff, RECORD_FRAME_SIZE, portMAX_DELAY);
-			xRingbufferSend(recorder->stream_in_ringbuff, stream_buff, RECORD_FRAME_SIZE, 100/portTICK_PERIOD_MS);
-			frame_cnt++;
-			// ESP_LOGE(TAG, "freme cnt: %d", frame_cnt);
-			if(frame_cnt > recorder->total_frames){
-				xEventGroupSetBits(
-					recorder->recorder_event,    // The event group being updated.
-					EV_DEL_FILE_WRITE_TASK );// The bits being set.
-				goto exit;
-			}
+	do{
+		stream_buff = calloc(READ_RINGBUF_BLOCK_SIZE, sizeof(int8_t));
+		if(!stream_buff){
+			break;
 		}
-		vTaskDelay(2 / portTICK_PERIOD_MS);
-    }
-exit:
+
+		rb_reset(recorder->record_ringbuff);
+
+		bsp_codec_dev_open(recorder->wav_fmt.sampleRate, recorder->wav_fmt.channels, recorder->wav_fmt.bits_per_sample);
+		xTaskCreatePinnedToCore(&wav_file_write_task, "wav_file_write_task", 4 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
+
+		while (1) {
+			while(rb_bytes_available(recorder->record_ringbuff) >= READ_RINGBUF_BLOCK_SIZE){
+				bsp_get_feed_data(true, stream_buff, READ_RINGBUF_BLOCK_SIZE);
+				// bsp_audio_play(stream_buff, READ_RINGBUF_BLOCK_SIZE, portMAX_DELAY);
+				rb_write(recorder->record_ringbuff, (char *)stream_buff, READ_RINGBUF_BLOCK_SIZE, 500/portTICK_PERIOD_MS);
+				frame_cnt++;
+				// ESP_LOGE(TAG, "freme cnt: %d", frame_cnt);
+				if(frame_cnt > recorder->total_frames){
+                    msg.type = IO_MSG_TYPE_RECORD_END;
+                    xQueueSend( recorder->record_queue, &msg, (TickType_t)0 );
+					break;
+				}
+			}
+			vTaskDelay(2 / portTICK_PERIOD_MS);
+		}
+	}while(0);
+
     bsp_codec_dev_close();
     if(stream_buff){
         free(stream_buff);

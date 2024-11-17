@@ -145,6 +145,7 @@ list(APPEND IDF_COMPONENTS
     spi_flash
     ulp
     vfs
+    esp_http_client
 )
 
 # list(APPEND IDF_COMPONENTS 

@@ -28,18 +28,8 @@
 extern "C" {
 #endif
 
-#define EV_DEL_FILE_WRITE_TASK       1
-#define EV_DEL_STREAM_IN_TASK        2
-#define EV_DEL_FILE_READ_TASK        4
-#define EV_DEL_STREAM_OUT_TASK       8
-
 #define CORE_NUM0 0
 #define CORE_NUM1 1
-
-#define STREAM_OUT_RINGBUF_SIZE   (1024*4) //(3880)
-// #define RINGBUF_WATER_SIZE (1024*2)
-#define STREAM_OUT_FRAME_SIZE 1024
-
 typedef struct {
     uint16_t channels;             // Number of channel;1: 1 channel;2: 2 channels;
     uint32_t bitRate;               // bit sample rate
@@ -55,13 +45,9 @@ typedef struct{
 wav_codec_t *wav_file_open(const char *path_in, int mode);
 void wav_file_close(wav_codec_t *wav_codec);
 
-void wav_file_read_task(void *arg);
-void stream_i2s_write_task(void *arg);
-
+// void wav_file_read_task(void *arg);
+// void stream_i2s_write_task(void *arg);
 void stream_i2s_read_task(void *arg);
-
-uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t ringbuff_size, size_t supply_bytes, int8_t *buffer);
-void clear_ringbuf(RingbufHandle_t ring_buff, size_t ringbuff_size);
 
 #ifdef __cplusplus
 }

@@ -2,12 +2,15 @@
 #define __RECORDER_
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
-#include "freertos/ringbuf.h"
+#include "ringbuf.h"
 #include "py/obj.h"
 #include "wav_codec.h"
 
-#define RECORD_FRAME_SIZE   (1000)
-#define RECORD_RINGBUF_SIZE (4000)
+#define READ_RINGBUF_BLOCK_SIZE    (500)
+#define READ_RINGBUF_BLOCK_NUM      (4)
+
+#define EV_RECORD_END       1
+
 typedef struct
 {
     wav_codec_t *wav_codec;
@@ -16,8 +19,8 @@ typedef struct
     uint8_t time;
     uint16_t total_frames;
     wav_fmt_t wav_fmt;
-    EventGroupHandle_t recorder_event;
-    RingbufHandle_t stream_in_ringbuff;
+    QueueHandle_t record_queue;
+    ringbuf_handle_t record_ringbuff;
 } recorder_handle_t;
 
 // typedef void* recorder_handle;

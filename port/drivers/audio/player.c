@@ -6,114 +6,105 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "wav_codec.h"
-#include "freertos/queue.h"
 #include <sys/stat.h>
 #include "bsp_audio.h"
-#include <dirent.h>
-#include "msg.h"
+#include "simple_file_decoder.h"
+#include "simple_http_decoder.h"
 
 #define TAG    "player"
+#define READ_RINGBUF_BLOCK_SIZE    (512)
+#define READ_RINGBUF_BLOCK_NUM      (8)
 
 player_handle_t *player = NULL;
-
-int file_list_scan(void *handle, const char *path)
-{
-    player_handle_t *player = handle;
-    struct dirent *ret;
-    DIR *dir;
-    dir = opendir(path);
-    int path_len = strlen(path);
-    if (dir != NULL) {
-        while ((ret = readdir(dir)) != NULL && player->file_num < player->max_file_num) { // NULL if reach the end of directory
-
-            if (ret->d_type != 1) // continue if d_type is not file
-                continue;
-
-            int len = strlen(ret->d_name);
-            if (len > FATFS_PATH_LENGTH_MAX - path_len - 1) // continue if name is too long
-                continue;
-
-            char *suffix = ret->d_name + len - 4;
-
-            if (strcmp(suffix, ".wav") == 0 || strcmp(suffix, ".WAV") == 0 ) {
-
-                memset(player->file_list[player->file_num], 0, FATFS_PATH_LENGTH_MAX);
-                memcpy(player->file_list[player->file_num], path, path_len);
-                memcpy(player->file_list[player->file_num] + path_len, ret->d_name, len + 1);
-                printf("%d -> %s\n", player->file_num, player->file_list[player->file_num]);
-                player->file_num++;
-            }
-        }
-        closedir(dir);
-    } else {
-        printf("opendir NULL \r\n");
-    }
-    return player->file_num;
-}
-
-void play_tast(void *arg)
-{
-    while(1){
-
-    }
-}
 
 void player_play(const char *uri)
 {
     if(!player){
         player = calloc(1, sizeof(player_handle_t));
-        player->player_event = xEventGroupCreate(); 
-        player->player_queue = xQueueCreate(10, sizeof(msg_t));  
-        player->stream_out_ringbuff = xRingbufferCreate(STREAM_OUT_RINGBUF_SIZE, RINGBUF_TYPE_BYTEBUF);    
-    }else{
-        if(player->player_state == 1 || player->player_state == 2){
-
+        if(player){
+            player->player_event = xEventGroupCreate();  
+            player->decode_ringbuff = rb_create(READ_RINGBUF_BLOCK_SIZE, READ_RINGBUF_BLOCK_NUM); 
+            if(!player->player_event || !player->decode_ringbuff){
+                if(player->player_event){ vEventGroupDelete(player->player_event); }
+                if(player->decode_ringbuff){ rb_destroy(player->decode_ringbuff); }
+                free(player);
+                return;
+            } 
+        }else{
+            return;
         }
-        clear_ringbuf(player->stream_out_ringbuff, STREAM_OUT_RINGBUF_SIZE);
+   
+    }else{
+        player_stop();
     }
 
+    rb_reset(player->decode_ringbuff);
     player->file_uri = uri;
-    player->player_state = 1;
-    if(strstr(uri, "http")){   // web play, include https
+    player->player_state = PLAYER_STATE_PLAYING;
 
+    if(strstr(uri, "http")){   // web play, include https
+        xTaskCreatePinnedToCore(&simple_http_read_task, "simple_http_read_task", 4 * 1024, (void*)player, 8, &player->simple_http_read_task_handle, CORE_NUM1);
     }else{
-        if(strstr(uri, ".mp3")){
-           
-        }else if(strstr(uri, ".pcm")){
-            
-        }else if(strstr(uri, ".wav")){
-            player->audio_type = AUDIO_WAV_FILE_PLAY;
-            xTaskCreatePinnedToCore(&wav_file_read_task, "wav_file_read_task", 4 * 1024, (void*)player, 8, &player->wav_file_read_task, CORE_NUM1);
-            // ESP_LOGE(TAG, "wav file");
-        }else if(strstr(uri, ".m4a")){
-            
-        }else if(strstr(uri, ".aac")){
-            
-        }
-        else{
-            mp_warning(NULL, "Not suport format.");
-            return;
-        }        
+    //    if(strstr(uri, ".wav")){
+    //         player->audio_type = AUDIO_WAV_FILE_PLAY;
+    //         xTaskCreatePinnedToCore(&wav_file_read_task, "wav_file_read_task", 4 * 1024, (void*)player, 8, &player->wav_file_read_task, CORE_NUM1);
+    //     }else{
+            xTaskCreatePinnedToCore(&simple_file_decoder_task, "simple_file_decoder_task", 4 * 1024, (void*)player, 8, &player->simple_file_decoder_task_handle, CORE_NUM1);
+        // }       
     }
 }
 
 void player_pause(void)
 {
-    player->player_state = 2;
+    if(player && player->player_state == PLAYER_STATE_PLAYING){
+        // xEventGroupSetBits(player->player_event, EV_PLAY_READ_TASK_PAUSE | EV_PLAY_WRITE_TASK_PAUSE);
+        if(player->simple_http_read_task_handle && player->simple_http_decoder_task_handle){
+            vTaskSuspend(player->simple_http_read_task_handle);
+            vTaskSuspend(player->simple_http_decoder_task_handle);
+        }
+        player->player_state = PLAYER_STATE_PAUSE;
+    }
 }
 
 void player_resume(void)
 {
-    player->player_state = 3;
+    if(player && player->player_state == PLAYER_STATE_PAUSE){
+        ESP_LOGE(TAG, "resume.");
+        vTaskResume(player->simple_http_read_task_handle);
+        vTaskResume(player->simple_http_decoder_task_handle);
+        player->player_state = PLAYER_STATE_PLAYING;
+    }
 }
 
 void player_stop(void)
 {
-    vRingbufferDelete(player->stream_out_ringbuff);
+    if(player && player->player_state != PLAYER_STATE_INIT &&
+       player->player_state != PLAYER_STATE_STOPPED){
+        if(player->player_state == PLAYER_STATE_PAUSE){
+            if(player->simple_http_read_task_handle && player->simple_http_decoder_task_handle){
+                vTaskResume(player->simple_http_read_task_handle);
+                vTaskResume(player->simple_http_decoder_task_handle);
+            }
+        }
 
-    xEventGroupSetBits(
-            player->player_event,    // The event group being updated.
-            EV_DEL_FILE_READ_TASK | EV_DEL_STREAM_OUT_TASK );// The bits being set.
+        xEventGroupSetBits(player->player_event, EV_PLAY_STOP);
+        vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+}
+
+void player_deinit(void)
+{
+    if(player){
+        if(player->player_state == PLAYER_STATE_PLAYING){
+
+        }else if(player->player_state == PLAYER_STATE_PAUSE){
+            
+        }
+
+        if(player->decode_ringbuff){ rb_destroy(player->decode_ringbuff);}
+        if(player->player_queue){vQueueDelete(player->player_queue);}
+        free(player);
+    }
 }
 
 int player_get_state(void)
@@ -158,60 +149,3 @@ void player_decrease_vol(void)
 
     bsp_audio_set_play_vol(vol);
 }
-
-void fill_ringbuf(RingbufHandle_t ring_buff, uint8_t *buffer, size_t len)
-{
-    size_t free_size;
-
-    free_size = xRingbufferGetCurFreeSize(ring_buff); //get ringbuf free size
-    if(free_size >= len){
-        xRingbufferSend(ring_buff, (const void *)buffer, len, 100/portTICK_PERIOD_MS);
-    }else{
-        // if(free_size > 0){
-        //     xRingbufferSend(ring_buff, (const void *)buffer, free_size, 100/portTICK_PERIOD_MS);
-        // }      
-    }
-}
-
-uint16_t read_ringbuf(RingbufHandle_t ring_buff, size_t ringbuff_size, size_t supply_bytes, int8_t *buffer)
-{
-    int ringBufRemainBytes = 0;
-    size_t len = 0;
-    void *temp = NULL;
-
-    ringBufRemainBytes = ringbuff_size - xRingbufferGetCurFreeSize(ring_buff); 
-
-    /* 1 从ringbuf中读解码器需要的数据量 */
-    if (ringBufRemainBytes > 0)
-    {
-        if(ringBufRemainBytes >= supply_bytes)  //ring buffer remain data enough for decoder need
-        { 
-            if(supply_bytes > 0){
-                temp = xRingbufferReceiveUpTo(ring_buff,  &len, 50 / portTICK_PERIOD_MS, supply_bytes);
-            }
-        }
-        else{ 
-            temp = xRingbufferReceiveUpTo(ring_buff,  &len, 50 / portTICK_PERIOD_MS, ringBufRemainBytes);     
-        }  
-
-        if(temp != NULL){
-            memcpy(buffer, temp, len);
-            vRingbufferReturnItem(ring_buff, (void *)temp);
-        }
-    }
-    // ESP_LOGE(TAG, "ringBufRemainBytes = %d, supply_bytes = %d, left bytes: %d", ringBufRemainBytes, supply_bytes, *bytes_left);
-    return len;
-}
-
-void clear_ringbuf(RingbufHandle_t ring_buff, size_t ringbuff_size)
-{
-    int ringBufRemainBytes = 0;
-    size_t len;
-    void *temp = NULL;
-
-    ringBufRemainBytes = ringbuff_size - xRingbufferGetCurFreeSize(ring_buff); //
-    temp = xRingbufferReceiveUpTo(ring_buff,  &len, 50 / portTICK_PERIOD_MS, ringBufRemainBytes);
-    if(temp != NULL)
-        vRingbufferReturnItem(ring_buff, (void *)temp);
-}
-

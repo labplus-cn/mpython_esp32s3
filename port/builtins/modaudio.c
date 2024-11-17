@@ -39,14 +39,6 @@
 
 // static const char *TAG = "audio";
 
-// static mp_obj_t audio_mod_lsfs2_open(size_t n_args, const mp_obj_t *args)
-// {
-//     vfs_lfs2_file_open(mp_obj_str_get_str(args[0]));
-//     // vfs_fat_file_open(args[0], args[1]);
-//     return mp_const_none;
-// }
-// static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_mod_lfs2_open_obj, 0, 2, audio_mod_lsfs2_open);
-
 static mp_obj_t mod_audio_init(void)
 {
     audio_init();
@@ -64,13 +56,13 @@ static MP_DEFINE_CONST_FUN_OBJ_0(audio_deinit_obj, mod_audio_deinit);
 /* ---------------player ------------------------*/
 static mp_obj_t audio_player_init(size_t n_args, const mp_obj_t *args)
 {
-    // player_create(4096, 1);
     return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_player_init_obj, 0, 1, audio_player_init);
 
 static mp_obj_t audio_player_deinit(void)
 {
+    player_deinit();
     return mp_const_none; 
 }
 static MP_DEFINE_CONST_FUN_OBJ_0(audio_player_deinit_obj, audio_player_deinit);
@@ -87,29 +79,31 @@ static MP_DEFINE_CONST_FUN_OBJ_1(audio_play_obj, audio_play);
 
 static mp_obj_t audio_resume(void)
 {
-    // player_resume();
+    player_resume();
     return mp_const_none;  
 }
 static MP_DEFINE_CONST_FUN_OBJ_0(audio_resume_obj, audio_resume);
 
 static mp_obj_t audio_stop(void)
 {
-    // player_stop();
+    player_stop();
     return mp_const_none;   
 }
 static MP_DEFINE_CONST_FUN_OBJ_0(audio_stop_obj, audio_stop);
 
 static mp_obj_t audio_pause(void)
 {
-    // player_pause();
+    player_pause();
     return  mp_const_none;   
 }
 static MP_DEFINE_CONST_FUN_OBJ_0(audio_pause_obj, audio_pause);
 
 static mp_obj_t audio_volume(mp_obj_t Volume)
 {
-    // mp_int_t vol =  mp_obj_get_int(Volume);
-
+    mp_int_t vol =  mp_obj_get_int(Volume);
+    if(vol > 100){ vol = 100;}
+    if(vol < 0){ vol = 0;}
+    player_set_vol(vol);
     return mp_const_none;   
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(audio_volume_obj, audio_volume);

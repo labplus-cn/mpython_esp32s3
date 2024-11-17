@@ -32,6 +32,11 @@ set(MICROPY_SOURCE_BOARD
     ${MPY_PORT_DIR}/drivers/audio/player.c
     ${MPY_PORT_DIR}/drivers/audio/recorder.c
     ${MPY_PORT_DIR}/drivers/audio/audio.c
+    ${MPY_PORT_DIR}/drivers/audio/ringbuf.c
+    ${MPY_PORT_DIR}/drivers/audio/audio_mem.c
+    ${MPY_PORT_DIR}/drivers/audio/simple_file_decoder.c
+    ${MPY_PORT_DIR}/drivers/audio/http_stream.c
+    ${MPY_PORT_DIR}/drivers/audio/simple_http_decoder.c
     ${MPY_PORT_DIR}/drivers/startup/00030.c
     ${MPY_PORT_DIR}/drivers/startup/i2c_master.c
     ${MPY_PORT_DIR}/drivers/startup/oled.c

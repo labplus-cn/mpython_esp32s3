@@ -186,8 +186,8 @@ static void machine_touchpad_isr_handler(void *arg)
     }
     
     for (int i = 0; i < MP_ARRAY_SIZE(touchpad_obj); i++) {
-        mp_obj_t handler = MP_STATE_PORT(machine_touchpad_irq_handler)[i];
-        if ((pad_intr >> i) & 0x01 && handler != MP_OBJ_NULL) {
+        mp_obj_t handler = MP_STATE_PORT(machine_touchpad_irq_handler)[i + 1];
+        if ((pad_intr >> (i + 1)) & 0x01 && handler != MP_OBJ_NULL) {
             if (touchpad_inactive_timeout[i] == 0) {
                 mp_sched_schedule(handler, mp_obj_new_int(1));
             }
@@ -268,6 +268,6 @@ MP_DEFINE_CONST_OBJ_TYPE(
     locals_dict, &mtp_locals_dict
     );
 
-MP_REGISTER_ROOT_POINTER(mp_obj_t *machine_touchpad_irq_handler[TOUCHPAD_NUM]);
+MP_REGISTER_ROOT_POINTER(mp_obj_t *machine_touchpad_irq_handler[TOUCHPAD_NUM + 1]);
 
 #endif
