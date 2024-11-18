@@ -106,10 +106,13 @@ class SHT20(object):
 
         :return: 温度,单位摄氏度
         """
-        self.i2c.writeto(0x40, b'\xf3')
-        sleep_ms(70)
-        t = i2c.readfrom(0x40, 2)
-        return -46.86 + 175.72 * (t[0] * 256 + t[1]) / 65535
+        try:
+            self.i2c.writeto(0x40, b'\xf3')
+            sleep_ms(70)
+            t = i2c.readfrom(0x40, 2)
+            return -46.86 + 175.72 * (t[0] * 256 + t[1]) / 65535
+        except Exception as e:
+            return -1
 
     def humidity(self):
         """
@@ -117,10 +120,13 @@ class SHT20(object):
 
         :return: 湿度,单位%
         """
-        self.i2c.writeto(0x40, b'\xf5')
-        sleep_ms(25)
-        t = i2c.readfrom(0x40, 2)
-        return -6 + 125 * (t[0] * 256 + t[1]) / 65535
+        try:
+            self.i2c.writeto(0x40, b'\xf5')
+            sleep_ms(25)
+            t = i2c.readfrom(0x40, 2)
+            return -6 + 125 * (t[0] * 256 + t[1]) / 65535
+        except Exception as e:
+            return -1
 
 
 class Color(object):
@@ -129,7 +135,6 @@ class Color(object):
 
     :param i2c: I2C实例对象,默认i2c=i2c.
     """
-
     def __init__(self, i2c=i2c):
         self.i2c = i2c
 
@@ -212,10 +217,8 @@ class AmbientLight(object):
 class Ultrasonic(object):
     """
     超声波模块控制类
-
     :param i2c: I2C实例对象,默认i2c=i2c.
     """
-
     def __init__(self, i2c=i2c):
         self.i2c = i2c
 
@@ -225,505 +228,507 @@ class Ultrasonic(object):
 
         :return: 返回测距,单位cm
         """
-        self.i2c.writeto(0x0b, bytearray([1]))
-        sleep_ms(2)
-        temp = self.i2c.readfrom(0x0b, 2)
-        distanceCM = (temp[0] + temp[1] * 256) / 10
-        if(distanceCM>200):
-            distanceCM=200
-        return distanceCM
-
-class SEGdisplay(object):
-    """
-    4段数码管模块tm1650控制类
-
-    :param i2c: I2C实例对象,默认i2c=i2c.
-    """
-
-    def __init__(self, i2c=i2c):
-        self.i2c = i2c
-        addr = self.i2c.scan()
-        if 36 in addr:
-            self.chip = 1  # TM1650
-        elif 112 in addr:
-            self.chip = 2  # HT16K33
-        else:
-            raise OSError("Can not find 7-seg-display module.")
-        if self.chip == 1:
-            self.i2c.writeto(0x24, bytearray([0x01]))
-            self._TubeTab = [
-                0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77,
-                0x7C, 0x39, 0x5E, 0x79, 0x71, 0x00, 0x40
-            ]
-        elif self.chip == 2:
-            self.ht16k33 = HT16K33_SEG()
-
-    def _uint(self, x):
-        """ display unsigned int number """
-        charTemp = [0, 0, 0, 0]
-        x = (x if x < 10000 else 9999)
-        charTemp[3] = x % 10
-        charTemp[2] = (x // 10) % 10
-        charTemp[1] = (x // 100) % 10
-        charTemp[0] = (x // 1000) % 10
-        if x < 1000:
-            charTemp[0] = 0x10
-            if x < 100:
-                charTemp[1] = 0x10
-            if x < 10:
-                charTemp[2] = 0x10
-        if self.chip == 1:
-            for i in range(0, 4):
-                self.i2c.writeto(0x34 + i, bytearray([self._TubeTab[charTemp[i]]]))
-        elif self.chip == 2:
-            for i in range(0, 4):
-                self.ht16k33.buffer[i*2] = self.ht16k33._TubeTab[charTemp[i]]
-            self.ht16k33.show()
-
-    def numbers(self, x):
-        """
-        数字显示-999~9999
-
-        :param int x: 数字,范围-999~9999
-        """
-        x = round(x)
-        if x >= 0:
-            self._uint(x)
-        else:
-            temp = (x if x > -999 else -999)
-            temp = abs(temp)
-            self._uint(temp)
-            if temp < 10:
-                if self.chip == 1:
-                    self.i2c.writeto(0x36, bytearray([self._TubeTab[0x11]]))
-                elif self.chip == 2:
-                    self.ht16k33.buffer[4] = self.ht16k33._TubeTab[17]
-                    self.ht16k33.show()
-            elif temp < 100:
-                if self.chip == 1:
-                    self.i2c.writeto(0x35, bytearray([self._TubeTab[0x11]]))
-                elif self.chip == 2:
-                    self.ht16k33.buffer[2] = self.ht16k33._TubeTab[17]
-                    self.ht16k33.show()
-            elif temp < 1000:
-                if self.chip == 1:
-                    self.i2c.writeto(0x34, bytearray([self._TubeTab[0x11]]))
-                elif self.chip == 2:
-                    self.ht16k33.buffer[0] = self.ht16k33._TubeTab[17]
-                    self.ht16k33.show()
-
-    def Clear(self):
-        """
-        数码管清屏
-        """
-        if self.chip == 1:
-            for i in range(0, 4):
-                self.i2c.writeto(0x34 + i, bytearray([self._TubeTab[0x10]]))
-        elif self.chip == 2:
-            self.ht16k33.fill(0)
-            self.ht16k33.show()
-
-
-_HT16K33_BLINK_CMD = const(0x80)
-_HT16K33_BLINK_DISPLAYON = const(0x01)
-_HT16K33_CMD_BRIGHTNESS = const(0xE0)
-_HT16K33_OSCILATOR_ON = const(0x21)
-_HT16K33_ADDR = const(0x70)
-
-
-class HT16K33:
-    def __init__(self, i2c=i2c):
-        self.i2c = i2c
-        self.address = _HT16K33_ADDR
-        self._temp = bytearray(1)
-
-        self.buffer = bytearray(16)
-        self._write_cmd(_HT16K33_OSCILATOR_ON)
-        self.blink_rate(0)
-        self.brightness(15)
-
-    def _write_cmd(self, byte):
-        self._temp[0] = byte
-        self.i2c.writeto(self.address, self._temp)
-
-    def blink_rate(self, rate=None):
-        """
-        设置像素点闪烁率
-
-        :param rate: 闪烁间隔时间,单位秒.默认None,常亮.
-        """
-
-        if rate is None:
-            return self._blink_rate
-        rate = rate & 0x03
-        self._blink_rate = rate
-        self._write_cmd(_HT16K33_BLINK_CMD | _HT16K33_BLINK_DISPLAYON
-                        | rate << 1)
-
-    def brightness(self, brightness):
-        """
-        设置像素点亮度
-
-        :param brightness: 亮度级别,范围0~15.
-        """
-        if brightness < 0 or brightness > 15:
-            raise ValueError("out of range,the brightness in 0~15")
-        brightness = brightness & 0x0F
-        self._brightness = brightness
-        self._write_cmd(_HT16K33_CMD_BRIGHTNESS | brightness)
-
-    def show(self):
-        """
-        显示生效
-        """
-        self.i2c.writeto_mem(self.address, 0x00, self.buffer)
-
-    def fill(self, color):
-        """
-        填充所有
-
-        :param color: 1亮;0灭
-        """
-        fill = 0xff if color else 0x00
-        for i in range(16):
-            self.buffer[i] = fill
-
-
-class HT16K33Matrix(HT16K33):
-    def __init__(self, i2c=i2c):
-        super().__init__(i2c)
-
-        self._fb_buffer = bytearray(self.WIDTH * self.HEIGHT * self.FB_BPP //
-                                    8)
-        self.framebuffer = framebuf.FrameBuffer(self._fb_buffer, self.WIDTH,
-                                                self.HEIGHT, self.FORMAT)
-
-        self.framebuffer.fill(0)
-        self.pixel = self.framebuffer.pixel
-        self.fill = self.framebuffer.fill
-        self.text = self.framebuffer.text
-        self.fill(0)
-        self.show()
-
-    def show(self):
-        self._copy_buf()
-        super().show()
-
-    def bitmap(self, bitmap):
-        for j in range(self.HEIGHT):
-            for i in range(self.WIDTH):
-                if bitmap[j] >> (7 - i) & 0x01:
-                    self.pixel(i, j, 1)
-
-
-class Matrix(HT16K33Matrix):
-    """
-    8x8点阵模块控制类
-
-    :param i2c: I2C实例对象,默认i2c=i2c.
-    """
-    WIDTH = 8
-    HEIGHT = 8
-    FORMAT = framebuf.MONO_HLSB
-    FB_BPP = 1
-
-    def _copy_buf(self):
-        for y in range(8):
-            b = 0x00
-            for i in range(8):
-
-                b = ((self._fb_buffer[y] >> i) & 0x01) | b
-                if i < 7:
-                    b = b << 1
-
-            self.buffer[y * 2] = b
-
-    # commands
-    _LCD_CLEARDISPLAY = const(0x01)
-    _LCD_RETURNHOME = const(0x02)
-    _LCD_ENTRYMODESET = const(0x04)
-    _LCD_DISPLAYCONTROL = const(0x08)
-    _LCD_CURSORSHIFT = const(0x10)
-    _LCD_FUNCTIONSET = const(0x20)
-    _LCD_SETCGRAMADDR = const(0x40)
-    _LCD_SETDDRAMADDR = const(0x80)
-    # flags for display entry mode
-    _LCD_ENTRYRIGHT = const(0x00)
-    _LCD_ENTRYLEFT = const(0x02)
-    _LCD_ENTRYSHIFTINCREMENT = const(0x01)
-    _LCD_ENTRYSHIFTDECREMENT = const(0x00)
-    #flags for display on/off control
-    _LCD_DISPLAYON = const(0x04)
-    _LCD_DISPLAYOFF = const(0x00)
-    _LCD_CURSORON = const(0x02)
-    _LCD_CURSOROFF = const(0x00)
-    _LCD_BLINKON = const(0x01)
-    _LCD_BLINKOFF = const(0x00)
-    #flags for display/cursor shift
-    _LCD_DISPLAYMOVE = const(0x08)
-    _LCD_CURSORMOVE = const(0x00)
-    _LCD_MOVERIGHT = const(0x04)
-    _LCD_MOVELEFT = const(0x00)
-    #flags for function set
-    _LCD_8BITMODE = const(0x10)
-    _LCD_4BITMODE = const(0x00)
-    _LCD_2LINE = const(0x08)
-    _LCD_1LINE = const(0x00)
-    _LCD_5x10DOTS = const(0x04)
-    _LCD_5x8DOTS = const(0x00)
-
-
-class HT16K33_SEG(HT16K33):
-    def __init__(self, i2c=i2c):
-        super().__init__(i2c)
-        # 0 1 2 3 4 5 6 7 8 9 a b c d e f ' ' -
-        self._TubeTab = [
-            0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE0, 0xFE, 0xF6, 0xEE,
-            0x3E, 0x1A, 0x7A, 0xDE, 0x8E, 0x00, 0x02]   
-
-class MP3(object):
-    """
-    MP3模块控制类
-
-    :param i2c: I2C实例对象,默认i2c=i2c.
-    """
-
-    def __init__(self, tx=-1, rx=-1, uart_num=1):
-        self.uart = UART(uart_num, 9600, tx=tx, rx=rx)
-        self.volume = 25
-
-    def _cmdWrite(self, cmd):
-        sum = 0
-        for i in range(0, 6):
-            sum += cmd[i]
-        sum1 = ((0xFFFF - sum) + 1)
-        sum_l = sum1 & 0xff
-        sum_h = sum1 >> 8
-
-        self.uart.write(bytearray([0x7E]))
-        self.uart.write(cmd)
-        self.uart.write(bytearray([sum_h]))
-        self.uart.write(bytearray([sum_l]))
-        self.uart.write(bytearray([0xEF]))
-        sleep_ms(20)
-
-    def play_song(self, num):
-        """
-        播放歌曲
-
-        :param int num: 歌曲编号,类型为数字
-        """
-        var = bytearray([0xFF, 0x06, 0x03, 0x01, 0x00, num])
-        self._cmdWrite(var)
-
-    def play(self):
-        """
-        播放,用于暂停后的重新播放
-        """
-        var = bytearray([0xFF, 0x06, 0x0D, 0x01, 0x00, 0x00])
-        self._cmdWrite(var)
-
-    def playDir(self, dir, songNo):
-        """
-        播放指定文件夹指定歌曲
-
-        :param int dir: 文件夹编号,类型数字
-        :param int songNo: 歌曲编号,类型为数字
-        """
-        var = bytearray([0xFF, 0x06, 0x0F, 0x00, dir, songNo])
-        self._cmdWrite(var)
-
-    def playNext(self):
-        """播下一首"""
-        var = bytearray([0xFF, 0x06, 0x01, 0x00, 0x00, 0x00])
-        self._cmdWrite(var)
-
-    def playPrev(self):
-        """播上一首"""
-        var = bytearray([0xFF, 0x06, 0x02, 0x00, 0x00, 0x00])
-        self._cmdWrite(var)
-
-    def pause(self):
-        """暂停播放"""
-        var = bytearray([0xFF, 0x06, 0x0E, 0x01, 0x00, 0x00])
-        self._cmdWrite(var)
-
-    def stop(self):
-        """停止播放"""
-        var = bytearray([0xff, 0x06, 0x16, 0x00, 0x00, 0x00])
-        self._cmdWrite(var)
-
-    def volumeInc(self):
-        """
-        增加音量
-        """
-        self._vol += 1
-        var = bytearray([0xFF, 0x06, 0x04, 0x00, 0x00, 0x00])
-        self._cmdWrite(var)
-        # 减小音量
-    def volumeDec(self):
-        """
-        减小音量
-        """
-        self._vol -= 1
-        var = bytearray([0xFF, 0x06, 0x05, 0x00, 0x00, 0x01])
-        self._cmdWrite(var)
-
-    def loop(self, songNo):
-        """
-        目录内指定序号歌曲循环播放
-
-        :param int songNo: 歌曲编号,类型为数字
-        """
-        var = bytearray([0xFF, 0x06, 0x08, 0x00, 0x00, songNo])
-        self._cmdWrite(var)
-
-    def loopDir(self, dir):
-        """
-        指定目录内循环播放
-
-        :param int dir: 文件夹编号,类型数字
-        """
-        # 指定目录内循环播放
-        var = bytearray([0xFF, 0x06, 0x17, 0x00, dir, 0x01])
-        self._cmdWrite(var)
-
-    def singleLoop(self, onOff):
-        """
-        单曲循环开关
-
-        :param int onOff: 0:不循环  1：循环
-        """
-        if onOff:
-            var = bytearray([0xFF, 0x06, 0x19, 0x00, 0x00, 0x00])
-        else:
-            var = bytearray([0xFF, 0x06, 0x19, 0x00, 0x00, 0x01])
-        self._cmdWrite(var)
-
-    @property
-    def volume(self):
-        """
-        设置或返回音量设置,范围0~30
-        """
-        return self._vol
-
-    @volume.setter
-    def volume(self, vol):
-        # set volume range 0~30
-        self._vol = vol
-        var = bytearray([0xFF, 0x06, 0x06, 0x00, 0x00, self._vol])
-        self._cmdWrite(var)
-
-    def resetDevice(self):
-        """复位MP3"""
-        var = bytearray([0xFF, 0x06, 0x0C, 0x00, 0x00, 0x00])
-        self._cmdWrite(var)
-
-class MP3_(object):
-    """
-    MP3模块
-    WT2003H4-16S
-    2022.02.12
-    """
-    def __init__(self, tx=-1, rx=-1, uart_num=1):
-        self.uart = UART(uart_num, 9600, stop=2, tx=tx, rx=rx)
-        self._vol = 15
-        self.is_paused = False
-        self.set_output_mode(1)
-        self.volume(15)
-
-    def _cmdWrite(self, cmd):
-        sum = 0
-        len = 0
-        for i in cmd:
-            sum += i
-            len += 1
-
-        len += 2
-        sum += len
-        sum = sum & 0xff
-
-        pakage = [0x7E, len]
-        pakage += cmd
-        pakage += ([sum, 0xEF])
-        self.uart.write(bytearray(pakage))
-        # print(len)
-        # print(pakage)
-        sleep_ms(100)
-
-    def play_song(self, num):
-        """
-        播放歌曲
-        :param int num: 歌曲编号,类型为数字
-        """
-        var = [0xA2, (num >> 8) & 0xff, num & 0xff]
-        self._cmdWrite(var)
-
-    def set_output_mode(self, mode):
-        """设置音频输出模式：0：speaker 1: DAC"""
-        var = [0xB6, mode]
-        self._cmdWrite(var)  
+        try:
+            self.i2c.writeto(0x0b, bytearray([1]))
+            sleep_ms(2)
+            temp = self.i2c.readfrom(0x0b, 2)
+            distanceCM = (temp[0] + temp[1] * 256) / 10
+            distanceCM = max(min(distanceCM, 200), 0)
+            return distanceCM
+        except Exception as e:
+            return -1
+
+# class SEGdisplay(object):
+#     """
+#     4段数码管模块tm1650控制类
+
+#     :param i2c: I2C实例对象,默认i2c=i2c.
+#     """
+
+#     def __init__(self, i2c=i2c):
+#         self.i2c = i2c
+#         addr = self.i2c.scan()
+#         if 36 in addr:
+#             self.chip = 1  # TM1650
+#         elif 112 in addr:
+#             self.chip = 2  # HT16K33
+#         else:
+#             raise OSError("Can not find 7-seg-display module.")
+#         if self.chip == 1:
+#             self.i2c.writeto(0x24, bytearray([0x01]))
+#             self._TubeTab = [
+#                 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77,
+#                 0x7C, 0x39, 0x5E, 0x79, 0x71, 0x00, 0x40
+#             ]
+#         elif self.chip == 2:
+#             self.ht16k33 = HT16K33_SEG()
+
+#     def _uint(self, x):
+#         """ display unsigned int number """
+#         charTemp = [0, 0, 0, 0]
+#         x = (x if x < 10000 else 9999)
+#         charTemp[3] = x % 10
+#         charTemp[2] = (x // 10) % 10
+#         charTemp[1] = (x // 100) % 10
+#         charTemp[0] = (x // 1000) % 10
+#         if x < 1000:
+#             charTemp[0] = 0x10
+#             if x < 100:
+#                 charTemp[1] = 0x10
+#             if x < 10:
+#                 charTemp[2] = 0x10
+#         if self.chip == 1:
+#             for i in range(0, 4):
+#                 self.i2c.writeto(0x34 + i, bytearray([self._TubeTab[charTemp[i]]]))
+#         elif self.chip == 2:
+#             for i in range(0, 4):
+#                 self.ht16k33.buffer[i*2] = self.ht16k33._TubeTab[charTemp[i]]
+#             self.ht16k33.show()
+
+#     def numbers(self, x):
+#         """
+#         数字显示-999~9999
+
+#         :param int x: 数字,范围-999~9999
+#         """
+#         x = round(x)
+#         if x >= 0:
+#             self._uint(x)
+#         else:
+#             temp = (x if x > -999 else -999)
+#             temp = abs(temp)
+#             self._uint(temp)
+#             if temp < 10:
+#                 if self.chip == 1:
+#                     self.i2c.writeto(0x36, bytearray([self._TubeTab[0x11]]))
+#                 elif self.chip == 2:
+#                     self.ht16k33.buffer[4] = self.ht16k33._TubeTab[17]
+#                     self.ht16k33.show()
+#             elif temp < 100:
+#                 if self.chip == 1:
+#                     self.i2c.writeto(0x35, bytearray([self._TubeTab[0x11]]))
+#                 elif self.chip == 2:
+#                     self.ht16k33.buffer[2] = self.ht16k33._TubeTab[17]
+#                     self.ht16k33.show()
+#             elif temp < 1000:
+#                 if self.chip == 1:
+#                     self.i2c.writeto(0x34, bytearray([self._TubeTab[0x11]]))
+#                 elif self.chip == 2:
+#                     self.ht16k33.buffer[0] = self.ht16k33._TubeTab[17]
+#                     self.ht16k33.show()
+
+#     def Clear(self):
+#         """
+#         数码管清屏
+#         """
+#         if self.chip == 1:
+#             for i in range(0, 4):
+#                 self.i2c.writeto(0x34 + i, bytearray([self._TubeTab[0x10]]))
+#         elif self.chip == 2:
+#             self.ht16k33.fill(0)
+#             self.ht16k33.show()
+
+
+# _HT16K33_BLINK_CMD = const(0x80)
+# _HT16K33_BLINK_DISPLAYON = const(0x01)
+# _HT16K33_CMD_BRIGHTNESS = const(0xE0)
+# _HT16K33_OSCILATOR_ON = const(0x21)
+# _HT16K33_ADDR = const(0x70)
+
+
+# class HT16K33:
+#     def __init__(self, i2c=i2c):
+#         self.i2c = i2c
+#         self.address = _HT16K33_ADDR
+#         self._temp = bytearray(1)
+
+#         self.buffer = bytearray(16)
+#         self._write_cmd(_HT16K33_OSCILATOR_ON)
+#         self.blink_rate(0)
+#         self.brightness(15)
+
+#     def _write_cmd(self, byte):
+#         self._temp[0] = byte
+#         self.i2c.writeto(self.address, self._temp)
+
+#     def blink_rate(self, rate=None):
+#         """
+#         设置像素点闪烁率
+
+#         :param rate: 闪烁间隔时间,单位秒.默认None,常亮.
+#         """
+
+#         if rate is None:
+#             return self._blink_rate
+#         rate = rate & 0x03
+#         self._blink_rate = rate
+#         self._write_cmd(_HT16K33_BLINK_CMD | _HT16K33_BLINK_DISPLAYON
+#                         | rate << 1)
+
+#     def brightness(self, brightness):
+#         """
+#         设置像素点亮度
+
+#         :param brightness: 亮度级别,范围0~15.
+#         """
+#         if brightness < 0 or brightness > 15:
+#             raise ValueError("out of range,the brightness in 0~15")
+#         brightness = brightness & 0x0F
+#         self._brightness = brightness
+#         self._write_cmd(_HT16K33_CMD_BRIGHTNESS | brightness)
+
+#     def show(self):
+#         """
+#         显示生效
+#         """
+#         self.i2c.writeto_mem(self.address, 0x00, self.buffer)
+
+#     def fill(self, color):
+#         """
+#         填充所有
+
+#         :param color: 1亮;0灭
+#         """
+#         fill = 0xff if color else 0x00
+#         for i in range(16):
+#             self.buffer[i] = fill
+
+
+# class HT16K33Matrix(HT16K33):
+#     def __init__(self, i2c=i2c):
+#         super().__init__(i2c)
+
+#         self._fb_buffer = bytearray(self.WIDTH * self.HEIGHT * self.FB_BPP //
+#                                     8)
+#         self.framebuffer = framebuf.FrameBuffer(self._fb_buffer, self.WIDTH,
+#                                                 self.HEIGHT, self.FORMAT)
+
+#         self.framebuffer.fill(0)
+#         self.pixel = self.framebuffer.pixel
+#         self.fill = self.framebuffer.fill
+#         self.text = self.framebuffer.text
+#         self.fill(0)
+#         self.show()
+
+#     def show(self):
+#         self._copy_buf()
+#         super().show()
+
+#     def bitmap(self, bitmap):
+#         for j in range(self.HEIGHT):
+#             for i in range(self.WIDTH):
+#                 if bitmap[j] >> (7 - i) & 0x01:
+#                     self.pixel(i, j, 1)
+
+
+# class Matrix(HT16K33Matrix):
+#     """
+#     8x8点阵模块控制类
+
+#     :param i2c: I2C实例对象,默认i2c=i2c.
+#     """
+#     WIDTH = 8
+#     HEIGHT = 8
+#     FORMAT = framebuf.MONO_HLSB
+#     FB_BPP = 1
+
+#     def _copy_buf(self):
+#         for y in range(8):
+#             b = 0x00
+#             for i in range(8):
+
+#                 b = ((self._fb_buffer[y] >> i) & 0x01) | b
+#                 if i < 7:
+#                     b = b << 1
+
+#             self.buffer[y * 2] = b
+
+#     # commands
+#     _LCD_CLEARDISPLAY = const(0x01)
+#     _LCD_RETURNHOME = const(0x02)
+#     _LCD_ENTRYMODESET = const(0x04)
+#     _LCD_DISPLAYCONTROL = const(0x08)
+#     _LCD_CURSORSHIFT = const(0x10)
+#     _LCD_FUNCTIONSET = const(0x20)
+#     _LCD_SETCGRAMADDR = const(0x40)
+#     _LCD_SETDDRAMADDR = const(0x80)
+#     # flags for display entry mode
+#     _LCD_ENTRYRIGHT = const(0x00)
+#     _LCD_ENTRYLEFT = const(0x02)
+#     _LCD_ENTRYSHIFTINCREMENT = const(0x01)
+#     _LCD_ENTRYSHIFTDECREMENT = const(0x00)
+#     #flags for display on/off control
+#     _LCD_DISPLAYON = const(0x04)
+#     _LCD_DISPLAYOFF = const(0x00)
+#     _LCD_CURSORON = const(0x02)
+#     _LCD_CURSOROFF = const(0x00)
+#     _LCD_BLINKON = const(0x01)
+#     _LCD_BLINKOFF = const(0x00)
+#     #flags for display/cursor shift
+#     _LCD_DISPLAYMOVE = const(0x08)
+#     _LCD_CURSORMOVE = const(0x00)
+#     _LCD_MOVERIGHT = const(0x04)
+#     _LCD_MOVELEFT = const(0x00)
+#     #flags for function set
+#     _LCD_8BITMODE = const(0x10)
+#     _LCD_4BITMODE = const(0x00)
+#     _LCD_2LINE = const(0x08)
+#     _LCD_1LINE = const(0x00)
+#     _LCD_5x10DOTS = const(0x04)
+#     _LCD_5x8DOTS = const(0x00)
+
+
+# class HT16K33_SEG(HT16K33):
+#     def __init__(self, i2c=i2c):
+#         super().__init__(i2c)
+#         # 0 1 2 3 4 5 6 7 8 9 a b c d e f ' ' -
+#         self._TubeTab = [
+#             0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE0, 0xFE, 0xF6, 0xEE,
+#             0x3E, 0x1A, 0x7A, 0xDE, 0x8E, 0x00, 0x02]   
+
+# class MP3(object):
+#     """
+#     MP3模块控制类
+
+#     :param i2c: I2C实例对象,默认i2c=i2c.
+#     """
+
+#     def __init__(self, tx=-1, rx=-1, uart_num=1):
+#         self.uart = UART(uart_num, 9600, tx=tx, rx=rx)
+#         self.volume = 25
+
+#     def _cmdWrite(self, cmd):
+#         sum = 0
+#         for i in range(0, 6):
+#             sum += cmd[i]
+#         sum1 = ((0xFFFF - sum) + 1)
+#         sum_l = sum1 & 0xff
+#         sum_h = sum1 >> 8
+
+#         self.uart.write(bytearray([0x7E]))
+#         self.uart.write(cmd)
+#         self.uart.write(bytearray([sum_h]))
+#         self.uart.write(bytearray([sum_l]))
+#         self.uart.write(bytearray([0xEF]))
+#         sleep_ms(20)
+
+#     def play_song(self, num):
+#         """
+#         播放歌曲
+
+#         :param int num: 歌曲编号,类型为数字
+#         """
+#         var = bytearray([0xFF, 0x06, 0x03, 0x01, 0x00, num])
+#         self._cmdWrite(var)
+
+#     def play(self):
+#         """
+#         播放,用于暂停后的重新播放
+#         """
+#         var = bytearray([0xFF, 0x06, 0x0D, 0x01, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+#     def playDir(self, dir, songNo):
+#         """
+#         播放指定文件夹指定歌曲
+
+#         :param int dir: 文件夹编号,类型数字
+#         :param int songNo: 歌曲编号,类型为数字
+#         """
+#         var = bytearray([0xFF, 0x06, 0x0F, 0x00, dir, songNo])
+#         self._cmdWrite(var)
+
+#     def playNext(self):
+#         """播下一首"""
+#         var = bytearray([0xFF, 0x06, 0x01, 0x00, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+#     def playPrev(self):
+#         """播上一首"""
+#         var = bytearray([0xFF, 0x06, 0x02, 0x00, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+#     def pause(self):
+#         """暂停播放"""
+#         var = bytearray([0xFF, 0x06, 0x0E, 0x01, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+#     def stop(self):
+#         """停止播放"""
+#         var = bytearray([0xff, 0x06, 0x16, 0x00, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+#     def volumeInc(self):
+#         """
+#         增加音量
+#         """
+#         self._vol += 1
+#         var = bytearray([0xFF, 0x06, 0x04, 0x00, 0x00, 0x00])
+#         self._cmdWrite(var)
+#         # 减小音量
+#     def volumeDec(self):
+#         """
+#         减小音量
+#         """
+#         self._vol -= 1
+#         var = bytearray([0xFF, 0x06, 0x05, 0x00, 0x00, 0x01])
+#         self._cmdWrite(var)
+
+#     def loop(self, songNo):
+#         """
+#         目录内指定序号歌曲循环播放
+
+#         :param int songNo: 歌曲编号,类型为数字
+#         """
+#         var = bytearray([0xFF, 0x06, 0x08, 0x00, 0x00, songNo])
+#         self._cmdWrite(var)
+
+#     def loopDir(self, dir):
+#         """
+#         指定目录内循环播放
+
+#         :param int dir: 文件夹编号,类型数字
+#         """
+#         # 指定目录内循环播放
+#         var = bytearray([0xFF, 0x06, 0x17, 0x00, dir, 0x01])
+#         self._cmdWrite(var)
+
+#     def singleLoop(self, onOff):
+#         """
+#         单曲循环开关
+
+#         :param int onOff: 0:不循环  1：循环
+#         """
+#         if onOff:
+#             var = bytearray([0xFF, 0x06, 0x19, 0x00, 0x00, 0x00])
+#         else:
+#             var = bytearray([0xFF, 0x06, 0x19, 0x00, 0x00, 0x01])
+#         self._cmdWrite(var)
+
+#     @property
+#     def volume(self):
+#         """
+#         设置或返回音量设置,范围0~30
+#         """
+#         return self._vol
+
+#     @volume.setter
+#     def volume(self, vol):
+#         # set volume range 0~30
+#         self._vol = vol
+#         var = bytearray([0xFF, 0x06, 0x06, 0x00, 0x00, self._vol])
+#         self._cmdWrite(var)
+
+#     def resetDevice(self):
+#         """复位MP3"""
+#         var = bytearray([0xFF, 0x06, 0x0C, 0x00, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+# class MP3_(object):
+#     """
+#     MP3模块
+#     WT2003H4-16S
+#     2022.02.12
+#     """
+#     def __init__(self, tx=-1, rx=-1, uart_num=1):
+#         self.uart = UART(uart_num, 9600, stop=2, tx=tx, rx=rx)
+#         self._vol = 15
+#         self.is_paused = False
+#         self.set_output_mode(1)
+#         self.volume(15)
+
+#     def _cmdWrite(self, cmd):
+#         sum = 0
+#         len = 0
+#         for i in cmd:
+#             sum += i
+#             len += 1
+
+#         len += 2
+#         sum += len
+#         sum = sum & 0xff
+
+#         pakage = [0x7E, len]
+#         pakage += cmd
+#         pakage += ([sum, 0xEF])
+#         self.uart.write(bytearray(pakage))
+#         # print(len)
+#         # print(pakage)
+#         sleep_ms(100)
+
+#     def play_song(self, num):
+#         """
+#         播放歌曲
+#         :param int num: 歌曲编号,类型为数字
+#         """
+#         var = [0xA2, (num >> 8) & 0xff, num & 0xff]
+#         self._cmdWrite(var)
+
+#     def set_output_mode(self, mode):
+#         """设置音频输出模式：0：speaker 1: DAC"""
+#         var = [0xB6, mode]
+#         self._cmdWrite(var)  
     
-    def set_play_mode(self, mode):
-        """指定播放模式"""
-        var = [0xAF, mode]
-        self._cmdWrite(var)
+#     def set_play_mode(self, mode):
+#         """指定播放模式"""
+#         var = [0xAF, mode]
+#         self._cmdWrite(var)
 
-    def pause(self):
-        """暂停播放"""
-        if self.is_paused == False:
-            self.is_paused = True
-            var = [0xAA]
-            self._cmdWrite(var)
+#     def pause(self):
+#         """暂停播放"""
+#         if self.is_paused == False:
+#             self.is_paused = True
+#             var = [0xAA]
+#             self._cmdWrite(var)
 
-    def stop(self):
-        """停止播放"""
-        var = [0xAB]
-        self._cmdWrite(var)
+#     def stop(self):
+#         """停止播放"""
+#         var = [0xAB]
+#         self._cmdWrite(var)
 
-    def play(self):
-        """
-        播放,用于暂停后的继续播放
-        """
-        if self.is_paused:
-            self.is_paused = False
-            var = [0xAA]
-            self._cmdWrite(var)
+#     def play(self):
+#         """
+#         播放,用于暂停后的继续播放
+#         """
+#         if self.is_paused:
+#             self.is_paused = False
+#             var = [0xAA]
+#             self._cmdWrite(var)
 
-    def playNext(self):
-        """播下一首"""
-        var = [0xAC]
-        self._cmdWrite(var)
+#     def playNext(self):
+#         """播下一首"""
+#         var = [0xAC]
+#         self._cmdWrite(var)
 
-    def playPrev(self):
-        """播上一首"""
-        var = [0xAD]
-        self._cmdWrite(var)
+#     def playPrev(self):
+#         """播上一首"""
+#         var = [0xAD]
+#         self._cmdWrite(var)
 
-    def volume(self, vol):
-        """设置音量 0~30"""
-        self._vol = vol
-        var = [0xAE, vol]
-        self._cmdWrite(var)
-        sleep_ms(50)
-        # while True:
-        #     if(self.uart.any()):
-        #         buff = self.uart.read(2)
-                # print(buff)
-                # break
+#     def volume(self, vol):
+#         """设置音量 0~30"""
+#         self._vol = vol
+#         var = [0xAE, vol]
+#         self._cmdWrite(var)
+#         sleep_ms(50)
+#         # while True:
+#         #     if(self.uart.any()):
+#         #         buff = self.uart.read(2)
+#                 # print(buff)
+#                 # break
     
-    def song_num(self):
-        """查询 SD 卡内音乐文件总数"""
-        var = [0xC5]
-        self._cmdWrite(var)
-        while True:
-            if(self.uart.any()):
-                buff = self.uart.read(3)
-                num = (buff[1] << 8) + buff[2]
-                if(buff[0]==197):
-                    return num
-                else:
-                    return 0
+#     def song_num(self):
+#         """查询 SD 卡内音乐文件总数"""
+#         var = [0xC5]
+#         self._cmdWrite(var)
+#         while True:
+#             if(self.uart.any()):
+#                 buff = self.uart.read(3)
+#                 num = (buff[1] << 8) + buff[2]
+#                 if(buff[0]==197):
+#                     return num
+#                 else:
+#                     return 0
 
 class IRRecv(object):
     """
@@ -835,84 +840,84 @@ class DelveBit(object):
                 continue
 
 
-class EncoderMotor(object):
-    """
-    blue:bit编码电机驱动,提供pwm、cruise、position 三种驱动方式。
+# class EncoderMotor(object):
+#     """
+#     blue:bit编码电机驱动,提供pwm、cruise、position 三种驱动方式。
 
-    :param address: 模块的I2C地址,可再模块拨动选择不同的地址避免冲突。
-    :param i2c: I2C实例对象,默认i2c=i2c
-    """
+#     :param address: 模块的I2C地址,可再模块拨动选择不同的地址避免冲突。
+#     :param i2c: I2C实例对象,默认i2c=i2c
+#     """
 
-    PWM_MODE = b'\x05'
-    """pwm模式"""
+#     PWM_MODE = b'\x05'
+#     """pwm模式"""
 
-    CRUISE_MODE = b'\x0a'
-    """巡航模式"""
+#     CRUISE_MODE = b'\x0a'
+#     """巡航模式"""
 
-    POSITION_MODE = b'\x0f'
-    """定位模式"""
+#     POSITION_MODE = b'\x0f'
+#     """定位模式"""
 
-    def __init__(self, address, i2c=i2c):
-        self.i2c = i2c
-        self.address = address
+#     def __init__(self, address, i2c=i2c):
+#         self.i2c = i2c
+#         self.address = address
 
-    def _effect(self, mode):
-        """
-        生效
-        """
-        write_buf = b'\x00' + mode
-        self.i2c.writeto(self.address, write_buf)
-        sleep_ms(10)
+#     def _effect(self, mode):
+#         """
+#         生效
+#         """
+#         write_buf = b'\x00' + mode
+#         self.i2c.writeto(self.address, write_buf)
+#         sleep_ms(10)
 
-    def motor_stop(self):
-        """
-        停止编码电机转动
-        """
+#     def motor_stop(self):
+#         """
+#         停止编码电机转动
+#         """
 
-        self.i2c.writeto(self.address, b'\x00\x00')
-        sleep_ms(10)
+#         self.i2c.writeto(self.address, b'\x00\x00')
+#         sleep_ms(10)
 
-    def set_pwm(self, speed1, speed2):
-        """
-        pwm模式
+#     def set_pwm(self, speed1, speed2):
+#         """
+#         pwm模式
 
-        :param speed1: 设置M1通道编码电机速度,范围-1023~1023
-        :param speed2: 设置M2通道编码电机速度,范围-1023~1023
-        """
-        if speed1 > 1023 or speed1 < -1023 or speed2 > 1023 or speed2 < -1023:
-            raise ValueError("Speed out of range:-1023~1023")
-        write_buf = b'\x06' + ustruct.pack('>HH', speed1, speed2)
-        self.i2c.writeto(self.address, write_buf)
-        sleep_ms(10)
-        self._effect(self.PWM_MODE)
+#         :param speed1: 设置M1通道编码电机速度,范围-1023~1023
+#         :param speed2: 设置M2通道编码电机速度,范围-1023~1023
+#         """
+#         if speed1 > 1023 or speed1 < -1023 or speed2 > 1023 or speed2 < -1023:
+#             raise ValueError("Speed out of range:-1023~1023")
+#         write_buf = b'\x06' + ustruct.pack('>HH', speed1, speed2)
+#         self.i2c.writeto(self.address, write_buf)
+#         sleep_ms(10)
+#         self._effect(self.PWM_MODE)
 
-    def set_cruise(self, speed1, speed2):
-        """
-        Cruise巡航模式,设定速度后,当编码电机受阻时,会根据反馈,自动调整扭力,稳定在恒定的速度。
+#     def set_cruise(self, speed1, speed2):
+#         """
+#         Cruise巡航模式,设定速度后,当编码电机受阻时,会根据反馈,自动调整扭力,稳定在恒定的速度。
 
-        :param speed1: 设置M1通道编码电机速度,范围-1023~1023
-        :param speed2: 设置M2通道编码电机速度,范围-1023~1023
-        """
-        if speed1 > 1023 or speed1 < -1023 or speed2 > 1023 or speed2 < -1023:
-            raise ValueError("Speed out of range:-1023~1023")
-        write_buf = b'\x0a' + ustruct.pack('>HH', speed1, speed2)
-        self.i2c.writeto(self.address, write_buf)
-        sleep_ms(10)
-        self._effect(self.CRUISE_MODE)
+#         :param speed1: 设置M1通道编码电机速度,范围-1023~1023
+#         :param speed2: 设置M2通道编码电机速度,范围-1023~1023
+#         """
+#         if speed1 > 1023 or speed1 < -1023 or speed2 > 1023 or speed2 < -1023:
+#             raise ValueError("Speed out of range:-1023~1023")
+#         write_buf = b'\x0a' + ustruct.pack('>HH', speed1, speed2)
+#         self.i2c.writeto(self.address, write_buf)
+#         sleep_ms(10)
+#         self._effect(self.CRUISE_MODE)
 
-    def set_position(self, turn1, turn2):
-        """
-        定位模式,可设置编码编码电机定点位置,范围-1023~1023。
+#     def set_position(self, turn1, turn2):
+#         """
+#         定位模式,可设置编码编码电机定点位置,范围-1023~1023。
 
-        :param turn1: 设置M1通道编码电机定位,-1023~1023
-        :param turn2: 设置M2通道编码电机定位,-1023~1023
-        """
-        if turn1 > 1023 or turn1 < -1023 or turn2 > 1023 or turn2 < -1023:
-            raise ValueError("Position out of range:0~1023")
-        write_buf = b'\x10' + ustruct.pack('>ll', turn1, turn2)
-        self.i2c.writeto(self.address, write_buf)
-        sleep_ms(10)
-        self._effect(self.POSITION_MODE)
+#         :param turn1: 设置M1通道编码电机定位,-1023~1023
+#         :param turn2: 设置M2通道编码电机定位,-1023~1023
+#         """
+#         if turn1 > 1023 or turn1 < -1023 or turn2 > 1023 or turn2 < -1023:
+#             raise ValueError("Position out of range:0~1023")
+#         write_buf = b'\x10' + ustruct.pack('>ll', turn1, turn2)
+#         self.i2c.writeto(self.address, write_buf)
+#         sleep_ms(10)
+#         self._effect(self.POSITION_MODE)
 
 
 class Rfid():
