@@ -44,7 +44,7 @@ static void example_disp_buf(uint8_t* buf, int length)
 void recorder_init()
 {}
 
-void recorder_record(const char *filename, int time)
+void recorder_record(const char *filename, wav_fmt_t fmt, int time)
 {
     if(!recorder){
         recorder = calloc(1, sizeof(recorder_handle_t));
@@ -58,9 +58,9 @@ void recorder_record(const char *filename, int time)
         recorder->time = 5;
     }
 
-    recorder->wav_fmt.bits_per_sample = 16;
-    recorder->wav_fmt.channels = 2;
-    recorder->wav_fmt.sampleRate = 16000;
+    recorder->wav_fmt.bits_per_sample = fmt.bits_per_sample;
+    recorder->wav_fmt.channels = fmt.channels;
+    recorder->wav_fmt.sampleRate = fmt.sampleRate;
     // data_size = sample_rate * (bits_per_sampe / 8) * channels * time;
     recorder->total_frames = recorder->time * (recorder->wav_fmt.sampleRate * recorder->wav_fmt.channels * recorder->wav_fmt.bits_per_sample / 8) / READ_RINGBUF_BLOCK_SIZE;
     ESP_LOGE(TAG, "record total frame: %d, time: %d", recorder->total_frames, recorder->time);

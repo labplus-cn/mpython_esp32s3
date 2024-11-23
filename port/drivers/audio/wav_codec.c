@@ -28,7 +28,6 @@
 #include "audio.h"
 #include "player.h"
 #include "recorder.h"
-#include "msg.h"
 
 static const char *TAG = "wav_codec";
 
@@ -234,6 +233,9 @@ void wav_file_write_task(void *arg)
     while (1) {
 		len = rb_read(recorder->record_ringbuff, (char *)buffer, READ_RINGBUF_BLOCK_SIZE, 100/portTICK_PERIOD_MS);
 		if(len > 0){
+			for(int i = 0; i < len/2; i++){
+				*((uint16_t*)buffer + i) <<= 3;
+			}
 			lfs2_file_write(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file, buffer, len);
 			// lfs2_file_sync(&wav_codec->lfs2_file->vfs->lfs, &wav_codec->lfs2_file->file);
 		}
@@ -261,7 +263,6 @@ void stream_i2s_read_task(void *arg)
     recorder_handle_t *recorder = arg;
 	uint16_t frame_cnt = 0;
 	int8_t *stream_buff = NULL;
-	size_t ringBufFreeBytes;
 
 	do{
 		stream_buff = calloc(READ_RINGBUF_BLOCK_SIZE, sizeof(int8_t));
@@ -271,22 +272,20 @@ void stream_i2s_read_task(void *arg)
 		bsp_codec_dev_open(recorder->wav_fmt.sampleRate, recorder->wav_fmt.channels, recorder->wav_fmt.bits_per_sample);
 		xTaskCreatePinnedToCore(&wav_file_write_task, "wav_file_write_task", 4 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
 		while (1) {
-			ringBufFreeBytes = rb_bytes_available(recorder->record_ringbuff);
-			if( ringBufFreeBytes >= READ_RINGBUF_BLOCK_SIZE){
+			while( rb_bytes_available(recorder->record_ringbuff) >= READ_RINGBUF_BLOCK_SIZE){
 				bsp_get_feed_data(true, stream_buff, READ_RINGBUF_BLOCK_SIZE);
-				bsp_audio_play(stream_buff, READ_RINGBUF_BLOCK_SIZE, portMAX_DELAY);
+				// bsp_audio_play(stream_buff, READ_RINGBUF_BLOCK_SIZE, portMAX_DELAY);
 				rb_write(recorder->record_ringbuff, (char *)stream_buff, READ_RINGBUF_BLOCK_SIZE, 100/portTICK_PERIOD_MS);
-				// ESP_LOGE(TAG, "frame cnt: %d", frame_cnt);
 				frame_cnt++;
 				if(frame_cnt > recorder->total_frames){
 					xEventGroupSetBits(recorder->recorder_event, EV_RECORD_END );
-					break;
+					goto exit;
 				}
-				vTaskDelay(2 / portTICK_PERIOD_MS);
 			}
+			vTaskDelay(2 / portTICK_PERIOD_MS);
 		}
 	}while(0);
-
+exit:
     bsp_codec_dev_close();
     if(stream_buff){
         free(stream_buff);

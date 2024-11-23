@@ -122,7 +122,6 @@ static MP_DEFINE_CONST_FUN_OBJ_0(audio_get_status_obj, audio_get_status);
 /* ------------------------recorder--------------------------*/
 static mp_obj_t audio_recorder_init(size_t n_args, const mp_obj_t *args)
 {
-    // esp_board_init(16000, 2, 32);
     return mp_const_none; 
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audio_recorder_init_obj, 0, 1, audio_recorder_init);
@@ -136,16 +135,24 @@ static MP_DEFINE_CONST_FUN_OBJ_0(audio_loudness_obj, audio_loudness);
 
 static mp_obj_t audio_record(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
 {
-    enum { ARG_file_name, ARG_record_time};
+    enum { ARG_file_name, ARG_record_time, ARG_bits_per_sample, ARG_channels, ARG_sampleRate};
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_file_name,    MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_record_time,  MP_ARG_INT, {.u_int = 5} },
+        { MP_QSTR_bits_per_sample,  MP_ARG_INT, {.u_int = 16} },
+        { MP_QSTR_channels,  MP_ARG_INT, {.u_int = 1} },
+        { MP_QSTR_sampleRate,  MP_ARG_INT, {.u_int = 8000} },
     };
+
     // parse args
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+    wav_fmt_t fmt;
+    fmt.bits_per_sample = args[ARG_bits_per_sample].u_int;
+    fmt.channels = args[ARG_channels].u_int;
+    fmt.sampleRate = args[ARG_sampleRate].u_int;
 
-    recorder_record(mp_obj_str_get_str(args[ARG_file_name].u_obj), args[ARG_record_time].u_int); 
+    recorder_record(mp_obj_str_get_str(args[ARG_file_name].u_obj), fmt, args[ARG_record_time].u_int); 
 
     return mp_const_none;
 }

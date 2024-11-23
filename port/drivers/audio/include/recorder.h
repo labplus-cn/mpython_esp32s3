@@ -24,7 +24,7 @@ typedef struct
 } recorder_handle_t;
 
 // typedef void* recorder_handle;
-void recorder_record(const char *filename, int time);
+void recorder_record(const char *filename, wav_fmt_t fmt, int time);
 
 extern recorder_handle_t *recorder;
 
