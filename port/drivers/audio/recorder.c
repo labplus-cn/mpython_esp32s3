@@ -23,7 +23,7 @@
 #include "player.h"
 #include "msg.h"
 
-#define TAG "recorder"
+// #define TAG "recorder"
 
 recorder_handle_t *recorder = NULL;
 
@@ -63,7 +63,7 @@ void recorder_record(const char *filename, wav_fmt_t fmt, int time)
     recorder->wav_fmt.sampleRate = fmt.sampleRate;
     // data_size = sample_rate * (bits_per_sampe / 8) * channels * time;
     recorder->total_frames = recorder->time * (recorder->wav_fmt.sampleRate * recorder->wav_fmt.channels * recorder->wav_fmt.bits_per_sample / 8) / READ_RINGBUF_BLOCK_SIZE;
-    ESP_LOGE(TAG, "record total frame: %d, time: %d", recorder->total_frames, recorder->time);
+    // ESP_LOGE(TAG, "record total frame: %d, time: %d", recorder->total_frames, recorder->time);
     recorder->file_uri = filename;
     xTaskCreatePinnedToCore(&stream_i2s_read_task, "stream_i2s_read_task", 4 * 1024, (void*)recorder, 8, NULL, CORE_NUM1);
 }

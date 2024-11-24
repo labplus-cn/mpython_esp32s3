@@ -102,7 +102,6 @@ static esp_err_t bsp_i2s_init(uint32_t sample_rate, int channel_format, int bits
     ret_val |= i2s_channel_init_std_mode(rx_handle, &std_cfg);
     ret_val |= i2s_channel_enable(tx_handle);
     ret_val |= i2s_channel_enable(rx_handle);
-    ESP_LOGE(TAG, "I2S rx init end.");
 #endif
 
     return ESP_OK;
@@ -184,7 +183,6 @@ esp_err_t bsp_codec_dev_create(void)
     };
     codec_dev = esp_codec_dev_new(&dev_cfg);
 
-    ESP_LOGE(TAG, "codec dev create.");
     return ret_val;
 }
 

@@ -125,7 +125,7 @@ void simple_http_read_task(void *arg)
 
 void simple_http_decoder_task(void *arg)
 {
-    ESP_LOGE(TAG, "simple_http_decoder_task begin, RAM left: %ld", esp_get_free_heap_size());
+    // ESP_LOGE(TAG, "simple_http_decoder_task begin, RAM left: %ld", esp_get_free_heap_size());
     player_handle_t *player = arg;
     int ret = 0;
     int max_out_size = 4096;
@@ -152,7 +152,7 @@ void simple_http_decoder_task(void *arg)
         simp_dec_all_t all_cfg = {};
         http_stream_t *http = get_http_handle();
         if(!http){ break; }
-        ESP_LOGE(TAG, "http stream type : %d", http->stream_type);
+        // ESP_LOGE(TAG, "http stream type : %d", http->stream_type);
         esp_audio_simple_dec_cfg_t dec_cfg = {
             .dec_type = http->stream_type,
             .dec_cfg = &all_cfg,
@@ -237,6 +237,6 @@ void simple_http_decoder_task(void *arg)
     if (out_buf) {
         free(out_buf);
     }
-    ESP_LOGE(TAG, "simple_http_decoder_task end, RAM left: %ld", esp_get_free_heap_size());
+    // ESP_LOGE(TAG, "simple_http_decoder_task end, RAM left: %ld", esp_get_free_heap_size());
     vTaskDelete(NULL);
 }

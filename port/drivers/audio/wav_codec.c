@@ -197,7 +197,7 @@ exit:
 
 void wav_file_write_task(void *arg)
 {
-	ESP_LOGE(TAG, "wav file write task begin, RAM left: %ld", esp_get_free_heap_size());
+	// ESP_LOGE(TAG, "wav file write task begin, RAM left: %ld", esp_get_free_heap_size());
     recorder_handle_t *recorder = arg;
 	EventBits_t uxBits;
 	uint16_t len = 0;
@@ -253,13 +253,13 @@ void wav_file_write_task(void *arg)
 
 	wav_file_close(wav_codec);
 	free(buffer);
-	ESP_LOGE(TAG, "wav file write task end, RAM left: %ld", esp_get_free_heap_size());
+	// ESP_LOGE(TAG, "wav file write task end, RAM left: %ld", esp_get_free_heap_size());
 	vTaskDelete(NULL);	
 }
 
 void stream_i2s_read_task(void *arg)
 {
-    ESP_LOGE(TAG, "stream in task begin, RAM left: %ld", esp_get_free_heap_size());
+    // ESP_LOGE(TAG, "stream in task begin, RAM left: %ld", esp_get_free_heap_size());
     recorder_handle_t *recorder = arg;
 	uint16_t frame_cnt = 0;
 	int8_t *stream_buff = NULL;
@@ -290,6 +290,6 @@ exit:
     if(stream_buff){
         free(stream_buff);
     }
-    ESP_LOGE(TAG, "stream in task end, RAM left: %ld", esp_get_free_heap_size());
+    // ESP_LOGE(TAG, "stream in task end, RAM left: %ld", esp_get_free_heap_size());
     vTaskDelete(NULL);
 }
