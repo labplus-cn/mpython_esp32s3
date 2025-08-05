@@ -1,0 +1,20 @@
+menu "mpython board"
+
+choice MPYTHON_BOARD
+    prompt "Audio hardware board"
+    default LABPLUS_CLASSROOM_KIT_NANJING_BOARD
+    help
+        Select an audio board to use
+
+config ESP32_KORVO_V1_1_BOARD
+    bool "ESP32-Korvo"
+    depends on IDF_TARGET_ESP32
+config LABPLUS_CLASSROOM_KIT_NANJING_BOARD
+    bool "Labplus-Classsroom-Kit-Nanjing"
+    depends on IDF_TARGET_ESP32
+config LABPLUS_LEDONG_PSRAM_BOARD
+    bool "Labplus-Ledong-with-psram"
+    depends on IDF_TARGET_ESP32
+endchoice
+
+endmenu

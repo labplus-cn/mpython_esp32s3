@@ -1,0 +1,1337 @@
+# The MIT License (MIT)
+
+# Copyright (c) 2018, Tangliufeng. LabPlus
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+"""
+| blue:bit modules library for mPython. 
+| more about with bluebit info browse http://wiki.labplus.cn/index.php?title=Bluebit
+"""
+from mpython import i2c, MPythonPin, PinMode, numberMap
+from micropython import const
+from machine import UART, ADC, Pin
+import framebuf
+import ubinascii
+import struct
+import math
+import time 
+
+from max30102 import MAX30102
+from CSK6011A import SpeechSynthesis
+from acd1200 import ACD1200
+
+from spl06_001 import Barometric
+from apds9960 import Gesture
+from ATGM336H_5N import GPS,BDS
+from weather import WEATHER
+from pm25 import PM25
+from solar import SolarPanel
+from paj7620 import PAJ7620
+
+class Thermistor:
+    """
+    NTC 模块。也适用于其他的热敏电阻。
+
+    :param pin: 掌控板引脚号,如使用P0,pin=0.
+    :param series_resistor: 与热敏电阻连接的串联电阻器的值。默认是10K电阻。
+    :param nominal_resistance: 在标称温度下热敏电阻的阻值。
+    :param nominal_temperature: 在标称电阻值下热敏电阻的温度值(以摄氏度为单位)。默认使用25.0摄氏度。
+    :param b_coefficient: 热敏电阻的温度系数。
+    :param high_side: 表示热敏电阻是连接在电阻分压器的高侧还是低侧。默认high_side为True。
+    """
+
+    def __init__(
+        self,
+        pin,
+        series_resistor=10000.0,
+        nominal_resistance=10000.0,
+        nominal_temperature=25.0,
+        b_coefficient=3935.0,
+        high_side=True
+    ):
+        self.adc = ADC(Pin(eval("Pin.P{}".format(pin))))
+        self.adc.atten(ADC.ATTN_11DB)
+        self.series_resistor = series_resistor
+        self.nominal_resistance = nominal_resistance
+        self.nominal_temperature = nominal_temperature
+        self.b_coefficient = b_coefficient
+        self.high_side = high_side
+    
+    def getTemper(self):
+        """
+        获取温度,读取异常则返回None
+
+        :return: 温度,单位摄氏度
+        """
+        try:
+            if self.high_side:
+                # Thermistor connected from analog input to high logic level.
+                reading = self.adc.read_u16() / 64
+                reading = (1023 * self.series_resistor) / reading
+                reading -= self.series_resistor
+            else:
+                # Thermistor connected from analog input to ground.
+                reading = self.series_resistor / (65535.0 / self.adc.read_u16() - 1.0)
+            steinhart = reading / self.nominal_resistance  # (R/Ro)
+            steinhart = math.log(steinhart)  # ln(R/Ro)
+            steinhart /= self.b_coefficient  # 1/B * ln(R/Ro)
+            steinhart += 1.0 / (self.nominal_temperature + 273.15)  # + (1/To)
+            steinhart = 1.0 / steinhart  # Invert
+            steinhart -= 273.15  # convert to C
+
+            return steinhart
+        except:
+            return None
+
+# 兼容以前旧接口
+NTC = Thermistor
+
+class SHT20(object):
+    """
+    温湿度模块SHT20控制类
+
+    :param i2c: I2C实例对象,默认i2c=i2c.
+    """
+
+    def __init__(self, i2c=i2c):
+        self.i2c = i2c
+
+    def temperature(self):
+        """
+        获取温度
+
+        :return: 温度,单位摄氏度
+        """
+        time.sleep_ms(10)
+        try:
+            self.i2c.writeto(0x40, b'\xf3')
+            time.sleep_ms(70)
+            t = i2c.readfrom(0x40, 2)
+            return -46.86 + 175.72 * (t[0] * 256 + t[1]) / 65535
+        except Exception as e:
+            return -1
+
+    def humidity(self):
+        """
+        获取湿度
+
+        :return: 湿度,单位%
+        """
+        time.sleep_ms(10)
+        try:
+            self.i2c.writeto(0x40, b'\xf5')
+            time.sleep_ms(25)
+            t = i2c.readfrom(0x40, 2)
+            return -6 + 125 * (t[0] * 256 + t[1]) / 65535
+        except Exception as e:
+            return -1
+
+
+class Color(object):
+    """
+    颜色模块控制类
+
+    :param i2c: I2C实例对象,默认i2c=i2c.
+    """
+    def __init__(self, i2c=i2c):
+        self.i2c = i2c
+
+    def getRGB(self):
+        """
+        获取RGB值
+
+        :return: 返回RGB三元组,(r,g,b)
+        """
+        color = [0, 0, 0]
+        self.i2c.writeto(0x0a, bytearray([1]))
+        time.sleep_ms(100)
+        self.i2c.writeto(0x0a, bytearray([2]))
+        state = self.i2c.readfrom(0x0a, 1)
+        if state[0] == 3:
+            self.i2c.writeto(0x0a, bytearray([3]))
+            c = self.i2c.readfrom(0x0a, 6)
+            color[0] = c[5] * 256 + c[4]  # color R
+            color[1] = c[1] * 256 + c[0]  # color G
+            color[2] = c[3] * 256 + c[2]  # color B
+            maxColor = max(color[0], color[1], color[2])
+            if maxColor > 255:
+                scale = 255 / maxColor
+                color[0] = int(color[0] * scale)
+                color[1] = int(color[1] * scale)
+                color[2] = int(color[2] * scale)
+        return color
+
+    def getHSV(self):
+        """
+        获取HSV值
+
+        :return: 返回HSV三元组,(h,s,v)
+        """
+        rgb = self.getRGB()
+        r, g, b = rgb[0], rgb[1], rgb[2]
+        r, g, b = r / 255.0, g / 255.0, b / 255.0
+        mx = max(r, g, b)
+        mn = min(r, g, b)
+        df = mx - mn
+        if mx == mn:
+            h = 0
+        elif mx == r:
+            h = (60 * ((g - b) / df) + 360) % 360
+        elif mx == g:
+            h = (60 * ((b - r) / df) + 120) % 360
+        elif mx == b:
+            h = (60 * ((r - g) / df) + 240) % 360
+        if mx == 0:
+            s = 0
+        else:
+            s = df / mx
+        v = mx
+        return round(h, 1), round(s, 1), round(v, 1)
+
+
+class AmbientLight(object):
+    """
+    数字光线模块控制类
+
+    :param i2c: I2C实例对象,默认i2c=i2c.
+    """
+    def __init__(self, i2c=i2c):
+        self.i2c = i2c
+
+    def getLight(self):
+        """
+        获取光线值
+
+        :return: 返回光线值,单位lux
+        """
+        try:
+            self.i2c.writeto(0x23, bytearray([0x10]))
+            time.sleep_ms(120)
+            t = self.i2c.readfrom(0x23, 2)
+            time.sleep_ms(10)
+            return int((t[0] * 256 + t[1]) / 1.2)
+        except Exception as e:
+            return -1
+
+
+class Ultrasonic(object):
+    """
+    超声波模块控制类
+    :param i2c: I2C实例对象,默认i2c=i2c.
+    """
+    def __init__(self, i2c=i2c):
+        self.i2c = i2c
+
+    def distance(self):
+        """
+        获取超声波测距
+
+        :return: 返回测距,单位cm
+        """
+        try:
+            self.i2c.writeto(0x0b, bytearray([1]))
+            time.sleep_ms(2)
+            temp = self.i2c.readfrom(0x0b, 2)
+            distanceCM = (temp[0] + temp[1] * 256) / 10
+            distanceCM = max(min(distanceCM, 200), 0)
+            return distanceCM
+        except Exception as e:
+            return -1
+
+class SEGdisplay(object):
+    """
+    4段数码管模块tm1650控制类
+
+    :param i2c: I2C实例对象,默认i2c=i2c.
+    """
+
+    def __init__(self, i2c=i2c):
+        self.i2c = i2c
+        addr = self.i2c.scan()
+        if 36 in addr:
+            self.chip = 1  # TM1650
+        elif 112 in addr:
+            self.chip = 2  # HT16K33
+        else:
+            raise OSError("Can not find 7-seg-display module.")
+        if self.chip == 1:
+            self.i2c.writeto(0x24, bytearray([0x01]))
+            self._TubeTab = [
+                0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77,
+                0x7C, 0x39, 0x5E, 0x79, 0x71, 0x00, 0x40
+            ]
+        elif self.chip == 2:
+            self.ht16k33 = HT16K33_SEG()
+
+    def _uint(self, x):
+        """ display unsigned int number """
+        charTemp = [0, 0, 0, 0]
+        x = (x if x < 10000 else 9999)
+        charTemp[3] = x % 10
+        charTemp[2] = (x // 10) % 10
+        charTemp[1] = (x // 100) % 10
+        charTemp[0] = (x // 1000) % 10
+        if x < 1000:
+            charTemp[0] = 0x10
+            if x < 100:
+                charTemp[1] = 0x10
+            if x < 10:
+                charTemp[2] = 0x10
+        if self.chip == 1:
+            for i in range(0, 4):
+                self.i2c.writeto(0x34 + i, bytearray([self._TubeTab[charTemp[i]]]))
+        elif self.chip == 2:
+            for i in range(0, 4):
+                self.ht16k33.buffer[i*2] = self.ht16k33._TubeTab[charTemp[i]]
+            self.ht16k33.show()
+
+    def numbers(self, x):
+        """
+        数字显示-999~9999
+
+        :param int x: 数字,范围-999~9999
+        """
+        x = round(x)
+        if x >= 0:
+            self._uint(x)
+        else:
+            temp = (x if x > -999 else -999)
+            temp = abs(temp)
+            self._uint(temp)
+            if temp < 10:
+                if self.chip == 1:
+                    self.i2c.writeto(0x36, bytearray([self._TubeTab[0x11]]))
+                elif self.chip == 2:
+                    self.ht16k33.buffer[4] = self.ht16k33._TubeTab[17]
+                    self.ht16k33.show()
+            elif temp < 100:
+                if self.chip == 1:
+                    self.i2c.writeto(0x35, bytearray([self._TubeTab[0x11]]))
+                elif self.chip == 2:
+                    self.ht16k33.buffer[2] = self.ht16k33._TubeTab[17]
+                    self.ht16k33.show()
+            elif temp < 1000:
+                if self.chip == 1:
+                    self.i2c.writeto(0x34, bytearray([self._TubeTab[0x11]]))
+                elif self.chip == 2:
+                    self.ht16k33.buffer[0] = self.ht16k33._TubeTab[17]
+                    self.ht16k33.show()
+
+    def Clear(self):
+        """
+        数码管清屏
+        """
+        if self.chip == 1:
+            for i in range(0, 4):
+                self.i2c.writeto(0x34 + i, bytearray([self._TubeTab[0x10]]))
+        elif self.chip == 2:
+            self.ht16k33.fill(0)
+            self.ht16k33.show()
+
+
+_HT16K33_BLINK_CMD = const(0x80)
+_HT16K33_BLINK_DISPLAYON = const(0x01)
+_HT16K33_CMD_BRIGHTNESS = const(0xE0)
+_HT16K33_OSCILATOR_ON = const(0x21)
+_HT16K33_ADDR = const(0x70)
+
+
+class HT16K33:
+    def __init__(self, i2c=i2c):
+        self.i2c = i2c
+        self.address = _HT16K33_ADDR
+        self._temp = bytearray(1)
+
+        self.buffer = bytearray(16)
+        self._write_cmd(_HT16K33_OSCILATOR_ON)
+        self.blink_rate(0)
+        self.brightness(15)
+
+    def _write_cmd(self, byte):
+        self._temp[0] = byte
+        self.i2c.writeto(self.address, self._temp)
+
+    def blink_rate(self, rate=None):
+        """
+        设置像素点闪烁率
+
+        :param rate: 闪烁间隔时间,单位秒.默认None,常亮.
+        """
+
+        if rate is None:
+            return self._blink_rate
+        rate = rate & 0x03
+        self._blink_rate = rate
+        self._write_cmd(_HT16K33_BLINK_CMD | _HT16K33_BLINK_DISPLAYON
+                        | rate << 1)
+
+    def brightness(self, brightness):
+        """
+        设置像素点亮度
+
+        :param brightness: 亮度级别,范围0~15.
+        """
+        if brightness < 0 or brightness > 15:
+            raise ValueError("out of range,the brightness in 0~15")
+        brightness = brightness & 0x0F
+        self._brightness = brightness
+        self._write_cmd(_HT16K33_CMD_BRIGHTNESS | brightness)
+
+    def show(self):
+        """
+        显示生效
+        """
+        self.i2c.writeto_mem(self.address, 0x00, self.buffer)
+
+    def fill(self, color):
+        """
+        填充所有
+
+        :param color: 1亮;0灭
+        """
+        fill = 0xff if color else 0x00
+        for i in range(16):
+            self.buffer[i] = fill
+
+
+class HT16K33Matrix(HT16K33):
+    def __init__(self, i2c=i2c):
+        super().__init__(i2c)
+
+        self._fb_buffer = bytearray(self.WIDTH * self.HEIGHT * self.FB_BPP //
+                                    8)
+        self.framebuffer = framebuf.FrameBuffer(self._fb_buffer, self.WIDTH,
+                                                self.HEIGHT, self.FORMAT)
+
+        self.framebuffer.fill(0)
+        self.pixel = self.framebuffer.pixel
+        self.fill = self.framebuffer.fill
+        self.text = self.framebuffer.text
+        self.fill(0)
+        self.show()
+
+    def show(self):
+        self._copy_buf()
+        super().show()
+
+    def bitmap(self, bitmap):
+        for j in range(self.HEIGHT):
+            for i in range(self.WIDTH):
+                if bitmap[j] >> (7 - i) & 0x01:
+                    self.pixel(i, j, 1)
+
+
+class Matrix(HT16K33Matrix):
+    """
+    8x8点阵模块控制类
+
+    :param i2c: I2C实例对象,默认i2c=i2c.
+    """
+    WIDTH = 8
+    HEIGHT = 8
+    FORMAT = framebuf.MONO_HLSB
+    FB_BPP = 1
+
+    def _copy_buf(self):
+        for y in range(8):
+            b = 0x00
+            for i in range(8):
+
+                b = ((self._fb_buffer[y] >> i) & 0x01) | b
+                if i < 7:
+                    b = b << 1
+
+            self.buffer[y * 2] = b
+
+    # commands
+    _LCD_CLEARDISPLAY = const(0x01)
+    _LCD_RETURNHOME = const(0x02)
+    _LCD_ENTRYMODESET = const(0x04)
+    _LCD_DISPLAYCONTROL = const(0x08)
+    _LCD_CURSORSHIFT = const(0x10)
+    _LCD_FUNCTIONSET = const(0x20)
+    _LCD_SETCGRAMADDR = const(0x40)
+    _LCD_SETDDRAMADDR = const(0x80)
+    # flags for display entry mode
+    _LCD_ENTRYRIGHT = const(0x00)
+    _LCD_ENTRYLEFT = const(0x02)
+    _LCD_ENTRYSHIFTINCREMENT = const(0x01)
+    _LCD_ENTRYSHIFTDECREMENT = const(0x00)
+    #flags for display on/off control
+    _LCD_DISPLAYON = const(0x04)
+    _LCD_DISPLAYOFF = const(0x00)
+    _LCD_CURSORON = const(0x02)
+    _LCD_CURSOROFF = const(0x00)
+    _LCD_BLINKON = const(0x01)
+    _LCD_BLINKOFF = const(0x00)
+    #flags for display/cursor shift
+    _LCD_DISPLAYMOVE = const(0x08)
+    _LCD_CURSORMOVE = const(0x00)
+    _LCD_MOVERIGHT = const(0x04)
+    _LCD_MOVELEFT = const(0x00)
+    #flags for function set
+    _LCD_8BITMODE = const(0x10)
+    _LCD_4BITMODE = const(0x00)
+    _LCD_2LINE = const(0x08)
+    _LCD_1LINE = const(0x00)
+    _LCD_5x10DOTS = const(0x04)
+    _LCD_5x8DOTS = const(0x00)
+
+
+class HT16K33_SEG(HT16K33):
+    def __init__(self, i2c=i2c):
+        super().__init__(i2c)
+        # 0 1 2 3 4 5 6 7 8 9 a b c d e f ' ' -
+        self._TubeTab = [
+            0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE0, 0xFE, 0xF6, 0xEE,
+            0x3E, 0x1A, 0x7A, 0xDE, 0x8E, 0x00, 0x02]   
+
+# class MP3(object):
+#     """
+#     MP3模块控制类
+
+#     :param i2c: I2C实例对象,默认i2c=i2c.
+#     """
+
+#     def __init__(self, tx=-1, rx=-1, uart_num=1):
+#         self.uart = UART(uart_num, 9600, tx=tx, rx=rx)
+#         self.volume = 25
+
+#     def _cmdWrite(self, cmd):
+#         sum = 0
+#         for i in range(0, 6):
+#             sum += cmd[i]
+#         sum1 = ((0xFFFF - sum) + 1)
+#         sum_l = sum1 & 0xff
+#         sum_h = sum1 >> 8
+
+#         self.uart.write(bytearray([0x7E]))
+#         self.uart.write(cmd)
+#         self.uart.write(bytearray([sum_h]))
+#         self.uart.write(bytearray([sum_l]))
+#         self.uart.write(bytearray([0xEF]))
+#         time.sleep_ms(20)
+
+#     def play_song(self, num):
+#         """
+#         播放歌曲
+
+#         :param int num: 歌曲编号,类型为数字
+#         """
+#         var = bytearray([0xFF, 0x06, 0x03, 0x01, 0x00, num])
+#         self._cmdWrite(var)
+
+#     def play(self):
+#         """
+#         播放,用于暂停后的重新播放
+#         """
+#         var = bytearray([0xFF, 0x06, 0x0D, 0x01, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+#     def playDir(self, dir, songNo):
+#         """
+#         播放指定文件夹指定歌曲
+
+#         :param int dir: 文件夹编号,类型数字
+#         :param int songNo: 歌曲编号,类型为数字
+#         """
+#         var = bytearray([0xFF, 0x06, 0x0F, 0x00, dir, songNo])
+#         self._cmdWrite(var)
+
+#     def playNext(self):
+#         """播下一首"""
+#         var = bytearray([0xFF, 0x06, 0x01, 0x00, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+#     def playPrev(self):
+#         """播上一首"""
+#         var = bytearray([0xFF, 0x06, 0x02, 0x00, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+#     def pause(self):
+#         """暂停播放"""
+#         var = bytearray([0xFF, 0x06, 0x0E, 0x01, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+#     def stop(self):
+#         """停止播放"""
+#         var = bytearray([0xff, 0x06, 0x16, 0x00, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+#     def volumeInc(self):
+#         """
+#         增加音量
+#         """
+#         self._vol += 1
+#         var = bytearray([0xFF, 0x06, 0x04, 0x00, 0x00, 0x00])
+#         self._cmdWrite(var)
+#         # 减小音量
+#     def volumeDec(self):
+#         """
+#         减小音量
+#         """
+#         self._vol -= 1
+#         var = bytearray([0xFF, 0x06, 0x05, 0x00, 0x00, 0x01])
+#         self._cmdWrite(var)
+
+#     def loop(self, songNo):
+#         """
+#         目录内指定序号歌曲循环播放
+
+#         :param int songNo: 歌曲编号,类型为数字
+#         """
+#         var = bytearray([0xFF, 0x06, 0x08, 0x00, 0x00, songNo])
+#         self._cmdWrite(var)
+
+#     def loopDir(self, dir):
+#         """
+#         指定目录内循环播放
+
+#         :param int dir: 文件夹编号,类型数字
+#         """
+#         # 指定目录内循环播放
+#         var = bytearray([0xFF, 0x06, 0x17, 0x00, dir, 0x01])
+#         self._cmdWrite(var)
+
+#     def singleLoop(self, onOff):
+#         """
+#         单曲循环开关
+
+#         :param int onOff: 0:不循环  1：循环
+#         """
+#         if onOff:
+#             var = bytearray([0xFF, 0x06, 0x19, 0x00, 0x00, 0x00])
+#         else:
+#             var = bytearray([0xFF, 0x06, 0x19, 0x00, 0x00, 0x01])
+#         self._cmdWrite(var)
+
+#     @property
+#     def volume(self):
+#         """
+#         设置或返回音量设置,范围0~30
+#         """
+#         return self._vol
+
+#     @volume.setter
+#     def volume(self, vol):
+#         # set volume range 0~30
+#         self._vol = vol
+#         var = bytearray([0xFF, 0x06, 0x06, 0x00, 0x00, self._vol])
+#         self._cmdWrite(var)
+
+#     def resetDevice(self):
+#         """复位MP3"""
+#         var = bytearray([0xFF, 0x06, 0x0C, 0x00, 0x00, 0x00])
+#         self._cmdWrite(var)
+
+class MP3_(object):
+    """
+    MP3模块
+    WT2003H4-16S
+    2022.02.12 
+    2024.8 去除rx引脚参数
+    2025.6.3 音量调节0-100
+    """
+    def __init__(self, tx=-1, rx=0, uart_num=1):
+        self.uart = UART(uart_num, 9600, stop=2, tx=tx, rx=rx)
+        self._vol = 60
+        self.is_paused = False
+        self.set_output_mode(1)
+        self.volume(60)
+
+    def _cmdWrite(self, cmd):
+        sum = 0
+        len = 0
+        for i in cmd:
+            sum += i
+            len += 1
+
+        len += 2
+        sum += len
+        sum = sum & 0xff
+
+        pakage = [0x7E, len]
+        pakage += cmd
+        pakage += ([sum, 0xEF])
+        self.uart.write(bytearray(pakage))
+        # print(len)
+        # print(pakage)
+        time.sleep_ms(100)
+
+    def play_song(self, num):
+        """
+        播放歌曲
+        :param int num: 歌曲编号,类型为数字
+        """
+        var = [0xA2, (num >> 8) & 0xff, num & 0xff]
+        self._cmdWrite(var)
+
+    def set_output_mode(self, mode):
+        """设置音频输出模式：0：speaker 1: DAC"""
+        var = [0xB6, mode]
+        self._cmdWrite(var)  
+    
+    def set_play_mode(self, mode):
+        """指定播放模式"""
+        var = [0xAF, mode]
+        self._cmdWrite(var)
+
+    def pause(self):
+        """暂停播放"""
+        if self.is_paused == False:
+            self.is_paused = True
+            var = [0xAA]
+            self._cmdWrite(var)
+
+    def stop(self):
+        """停止播放"""
+        var = [0xAB]
+        self._cmdWrite(var)
+
+    def play(self):
+        """
+        播放,用于暂停后的继续播放
+        """
+        if self.is_paused:
+            self.is_paused = False
+            var = [0xAA]
+            self._cmdWrite(var)
+
+    def playNext(self):
+        """播下一首"""
+        var = [0xAC]
+        self._cmdWrite(var)
+
+    def playPrev(self):
+        """播上一首"""
+        var = [0xAD]
+        self._cmdWrite(var)
+
+    def volume(self, vol):
+        """设置音量 0~100"""
+        self._vol = vol
+        vol = int(numberMap(vol,0,100,0,30)) # 0~30
+        var = [0xAE, vol]
+        self._cmdWrite(var)
+        time.sleep_ms(50)
+        # while True:
+        #     if(self.uart.any()):
+        #         buff = self.uart.read(2)
+                # print(buff)
+                # break
+    
+    # def song_num(self):
+    #     """查询 SD 卡内音乐文件总数"""
+    #     var = [0xC5]
+    #     self._cmdWrite(var)
+    #     while True:
+    #         if(self.uart.any()):
+    #             buff = self.uart.read(3)
+    #             num = (buff[1] << 8) + buff[2]
+    #             if(buff[0]==197):
+    #                 return num
+    #             else:
+    #                 return 0
+
+class IRRecv(object):
+    """
+    红外接收模块
+
+    :param rx: 接收引脚设置
+    :param uart_id: 串口号:1、2
+    """
+    def __init__(self, rx, uart_id=1):
+        self.uart = UART(uart_id, baudrate=115200, rx=rx)
+
+    def recv(self):
+        """
+        接收数据
+
+        :return int: 返回红外值,类型整形
+        """
+        if self.uart.any():
+            temp = self.uart.read()
+            if temp is not None:
+                return struct.unpack("B", temp)[0]
+            else:
+                return None
+
+
+class IRTrans(object):
+    """
+    红外发射模块
+
+    :param tx: 发送引脚设置
+    :param uart_id: 串口号:1、2
+    """
+
+    def __init__(self, tx, uart_id=2):
+        self.uart = UART(uart_id, baudrate=115200, tx=tx)
+
+    def transmit(self, byte):
+        """
+        发送数据
+
+        :param byte byte: 发送数据,单字节
+        """
+        self.uart.write(byte)
+
+
+class DelveBit(object):
+    """
+    实验探究类的blue:bit,适用的模块有电压、电流、磁场、电导率、PH、光电门、气压、力传感器
+
+    :param address: 模块的I2C地址,可再模块拨动选择不同的地址避免冲突。
+    :param i2c: I2C实例对象,默认i2c=i2c
+    """
+
+    def __init__(self, address, i2c=i2c):
+        self.i2c = i2c
+        self.address = address
+
+    def common_measure(self):
+        """
+        获取实验探究类传感器测量值的通用函数
+
+        :return int: 返回传感器测量值,单位:电压(V)、电流(A)、磁场(mT)、电导率(uS/cm)、PH(pH)、光电门(s)、气压(kPa)、力传感器(N)
+        """
+        try:
+            self.i2c.scan()
+            temp = self.i2c.readfrom(self.address, 2)
+            data = struct.unpack(">h", temp)
+            time.sleep_ms(20)
+            return round(data[0] / 100, 2)
+        except Exception as e:
+            return -1
+
+    def _trigger_receive(self):
+        try:
+            self.i2c.scan()
+            temp = self.i2c.readfrom(self.address, 5, True)
+            if temp[0] in [0, 1]:
+                return temp
+            else:
+                temp = b'\xff'
+                return temp
+        except Exception as e:
+            return -1
+
+    def photo_gate(self):
+        """
+        Photogate Timer 是用来记录刚触发时刻和触发结束时刻的时间。计算信号的正脉宽时间,当输入信号由低变高为触发开始点,由高变低位触发触发结束点,计算之间的时间差。
+
+        :return int: 返回正脉宽时间,单位秒
+        """
+        old_start = b'\xff'
+        while True:
+            start = self._trigger_receive()
+            if start[0] == 1 and old_start[0] == 255:
+                trigger_begin = start[1] * 16777216 + start[2] * 65536 + start[
+                    3] * 256 + start[4]
+                old_end = start
+                while True:
+                    end = self._trigger_receive()
+                    if old_end[0] == 0 and end[0] == 255:
+                        trigger_end = old_end[1] * 16777216 + old_end[
+                            2] * 65536 + old_end[3] * 256 + old_end[4]
+                        trigger_time = (trigger_end - trigger_begin) / 2041667
+                        # print("time:", trigger_time, trigger_begin,
+                        #       trigger_end)
+                        return trigger_time
+                    else:
+                        old_end = end
+                        continue
+            else:
+                old_start = start
+                continue
+
+
+# class EncoderMotor(object):
+#     """
+#     blue:bit编码电机驱动,提供pwm、cruise、position 三种驱动方式。
+
+#     :param address: 模块的I2C地址,可再模块拨动选择不同的地址避免冲突。
+#     :param i2c: I2C实例对象,默认i2c=i2c
+#     """
+
+#     PWM_MODE = b'\x05'
+#     """pwm模式"""
+
+#     CRUISE_MODE = b'\x0a'
+#     """巡航模式"""
+
+#     POSITION_MODE = b'\x0f'
+#     """定位模式"""
+
+#     def __init__(self, address, i2c=i2c):
+#         self.i2c = i2c
+#         self.address = address
+
+#     def _effect(self, mode):
+#         """
+#         生效
+#         """
+#         write_buf = b'\x00' + mode
+#         self.i2c.writeto(self.address, write_buf)
+#         time.sleep_ms(10)
+
+#     def motor_stop(self):
+#         """
+#         停止编码电机转动
+#         """
+
+#         self.i2c.writeto(self.address, b'\x00\x00')
+#         time.sleep_ms(10)
+
+#     def set_pwm(self, speed1, speed2):
+#         """
+#         pwm模式
+
+#         :param speed1: 设置M1通道编码电机速度,范围-1023~1023
+#         :param speed2: 设置M2通道编码电机速度,范围-1023~1023
+#         """
+#         if speed1 > 1023 or speed1 < -1023 or speed2 > 1023 or speed2 < -1023:
+#             raise ValueError("Speed out of range:-1023~1023")
+#         write_buf = b'\x06' + ustruct.pack('>HH', speed1, speed2)
+#         self.i2c.writeto(self.address, write_buf)
+#         time.sleep_ms(10)
+#         self._effect(self.PWM_MODE)
+
+#     def set_cruise(self, speed1, speed2):
+#         """
+#         Cruise巡航模式,设定速度后,当编码电机受阻时,会根据反馈,自动调整扭力,稳定在恒定的速度。
+
+#         :param speed1: 设置M1通道编码电机速度,范围-1023~1023
+#         :param speed2: 设置M2通道编码电机速度,范围-1023~1023
+#         """
+#         if speed1 > 1023 or speed1 < -1023 or speed2 > 1023 or speed2 < -1023:
+#             raise ValueError("Speed out of range:-1023~1023")
+#         write_buf = b'\x0a' + ustruct.pack('>HH', speed1, speed2)
+#         self.i2c.writeto(self.address, write_buf)
+#         time.sleep_ms(10)
+#         self._effect(self.CRUISE_MODE)
+
+#     def set_position(self, turn1, turn2):
+#         """
+#         定位模式,可设置编码编码电机定点位置,范围-1023~1023。
+
+#         :param turn1: 设置M1通道编码电机定位,-1023~1023
+#         :param turn2: 设置M2通道编码电机定位,-1023~1023
+#         """
+#         if turn1 > 1023 or turn1 < -1023 or turn2 > 1023 or turn2 < -1023:
+#             raise ValueError("Position out of range:0~1023")
+#         write_buf = b'\x10' + ustruct.pack('>ll', turn1, turn2)
+#         self.i2c.writeto(self.address, write_buf)
+#         time.sleep_ms(10)
+#         self._effect(self.POSITION_MODE)
+
+from mfrc import Rfid
+
+class Scan_Rfid():
+    """扫描Rfid卡类.
+    """
+    def __init__(self, i2c=i2c, i2c_addr=47):
+        self.rf = Rfid(i2c, i2c_addr)
+        
+    def scanning(self):
+        return self.rf
+
+class Scan_Rfid_Edu():
+    """扫描Rfid卡类.
+    """
+    def __init__(self, i2c=i2c, i2c_addr=47):
+        self.rf = Rfid(i2c, i2c_addr)
+        
+    def scanning(self):
+        return self.rf
+
+class GasSensor():
+    '''
+    乐动模块 烟雾传感器
+    '''
+    def __init__(self, pin):
+        '''初始化参数，引脚'''
+        self.pin = MPythonPin(pin, PinMode.ANALOG)
+        self.threshold = 2000 
+
+    def detect(self):
+        '''是否探测到，布尔类型True/False'''
+        tmp = self.pin.read_analog()
+        if(tmp>=self.threshold):
+            return True
+        else:
+            return False
+
+    def get_raw_val(self):
+        '''获取烟雾传感器裸数据，模拟值'''
+        return self.pin.read_analog()
+
+    def set_threshold(self, threshold):
+        '''设置烟雾传感器阈值，模拟值'''
+        self.threshold = threshold
+
+class IRObstacle():
+    '''
+    乐动模块 红外感应传感器
+    '''
+    def __init__(self, pin):
+        '''初始化参数，引脚'''
+        self.pin = MPythonPin(pin, PinMode.ANALOG)
+        self.threshold = 1500 #默认阈值
+
+    def detect(self):
+        '''是否探测到，布尔类型True/False'''
+        tmp = self.pin.read_analog()
+        if(tmp<=self.threshold):
+            return True
+        else:
+            return False
+
+    def get_raw_val(self):
+        '''获取红外探测传感器裸数据，模拟值'''
+        return self.pin.read_analog()
+
+    def set_threshold(self, threshold):
+        '''设置红外探测传感器阈值，模拟值'''
+        self.threshold = threshold
+
+class SoilHumiditySensor():
+    '''乐动模块 土壤湿度'''
+    def __init__(self, pin):
+        self.pin = MPythonPin(pin, PinMode.ANALOG)
+        self.threshold = 2500 
+
+    def detect(self):
+        '''是否探测到，布尔类型True/False'''
+        tmp = self.get_raw_val()
+        if(tmp<=self.threshold):
+            return True
+        else:
+            return False
+
+    def get_raw_val(self):
+        '''获取土壤湿度传感器裸数据，模拟值:1600-2600 映射 4095-0 '''
+        _soil_humidity =  self.pin.read_analog()
+        if _soil_humidity > 2600:
+            _soil_humidity = 2600
+            return int(numberMap(_soil_humidity,1600,2600,4095,0))
+        elif _soil_humidity < 1600:
+            _soil_humidity = 1600
+            return int(numberMap(_soil_humidity,1600,2600,4095,0))
+        else:
+            return int(numberMap(_soil_humidity,1600,2600,4095,0))
+
+    def set_threshold(self, threshold):
+        '''设置土壤湿度传感器阈值，模拟值'''
+        self.threshold = threshold
+
+    def read(self):
+        '''获取土壤湿度传感器裸数据，模拟值:1600-2600 映射 4095-0 '''
+        return self.get_raw_val()
+        
+
+class FanPWM():
+    def __init__(self, pin):
+        self.pin = MPythonPin(pin, PinMode.PWM)
+        self.pwm(0)
+
+    def pwm(self,num):
+        self.pin.write_analog(int(numberMap(num,0,100,0,1023)))
+
+
+'''
+编码电机
+'''
+
+MOTOR_right = const(0x01)
+"""
+M1电机编号，0x01
+"""
+
+MOTOR_left = const(0x02)
+"""
+M2电机编号，0x02
+"""
+i2c_scan = i2c.scan()
+
+_speed_buf = {}
+
+class EncoderMotor(object):
+    def __init__(self):
+        self.batch = -1 
+        if 18 in i2c_scan:
+            # 编码电机(新)
+            self.i2c_addr = 18
+            self.batch = 1 
+            self.stop()
+            # print('编码电机')
+        else:
+            print('编码电机有故障！')
+        
+    def stop(self):
+        if (self.batch == 1):
+            attempts=0
+            while True:
+                try:
+                    i2c.writeto(self.i2c_addr, bytearray([1]))
+                except Exception as e:
+                    attempts = attempts + 1
+                    if attempts > 2:
+                        break
+                else:
+                    break
+
+    def move(self, speed_l, speed_r):
+        """
+        设置电机速度
+        :param int motor_no: 控制电机编号，可以使用 ``MOTOR_left``, ``MOTOR_right`` ,或者直接写入电机编号。
+        :param int speed: 电机速度，范围-100~100，负值代表反转。
+        """
+        """
+        设置小车移动速度，可前进后退
+        :param int speed_l: 左电机速度 -100 -- 100。
+        :param int speed_r: 右电机速度 -100 -- 100。
+        """
+        if (self.batch == 1):
+            if speed_l < -100:
+                speed_l = -100
+            if speed_r < -100:
+                speed_r = -100
+            if speed_l > 100:
+                speed_l = 100
+            if speed_r > 100:
+                speed_r = 100
+     
+            attempts=0
+            while True:
+                try:
+                    i2c.writeto(self.i2c_addr, bytearray([2, speed_l, speed_r]))
+                except Exception as e:
+                    attempts = attempts + 1
+                    if attempts > 2:
+                        break
+                else:
+                    break
+
+    def turn_angle(self, dir, speed, angle):
+        """
+        设置电机转向 
+        :param int dir: 左转： 3 右转： 4
+        :param int speed: 左电机速度 0 -- 100。
+        :param int angle: 左电机速度 0 -- 360
+        """
+        if (self.batch == 1):
+            if speed < 0:
+                speed = 0
+            if speed > 100:
+                speed = 100
+            if dir !=3 and dir != 4:
+                return
+            tmp = [0]*2
+            tmp[0] = angle & 0xff
+            tmp[1] = (angle >> 8) & 0xff
+         
+            attempts=0
+            while True:
+                try:
+                    i2c.writeto(self.i2c_addr, bytearray([dir, speed, tmp[0], tmp[1]]))
+                except Exception as e:
+                    attempts = attempts + 1
+                    if attempts > 2:
+                        break
+                else:
+                    break
+        elif (self.batch == 0):
+            print('编码电机才支持')
+            pass
+
+    def move_distance(self, speed, distance):
+        """
+        设置小车移动动指定距离，单位:mm 可前进后退
+        :param int speed: 电机速度 -100 -- 100。
+        :param int distance: 移动距离 0 --- 65535 mm
+        """
+        distance = distance*10
+        if (self.batch == 1):
+            if distance < 0:
+                distance = 0
+            if distance > 65535:
+                distance = 65535
+            tmp = [0]*2
+            tmp[0] = distance & 0xff
+            tmp[1] = (distance >> 8) & 0xff
+            attempts=0
+            while True:
+                try:
+                    i2c.writeto(self.i2c_addr, bytearray([5, speed, tmp[0], tmp[1]]))
+                except Exception as e:
+                    attempts = attempts + 1
+                    if attempts > 2:
+                        break
+                else:
+                    break
+        elif (self.batch == 0):
+            print('编码电机才支持')
+            return
+
+    def set_correct(self, correct):
+        """
+        设置小车移动指定距离可转向时修正系数，以修正精确度
+        :param int correct: 修正系数 -100 -- 100
+        """
+        if (self.batch == 1):
+            if correct < -100:
+                correct = -100
+            if correct > 100:
+                correct = 100
+            attempts=0
+            while True:
+                try:
+                    i2c.writeto(self.i2c_addr, bytearray([6, correct]))
+                except Exception as e:
+                    attempts = attempts + 1
+                    if attempts > 2:
+                        break
+                else:
+                    break
+        elif (self.batch == 0):
+            print('编码电机才支持')
+            return
+        
+    def motor_run(self,num,speed):
+        """"
+        单个编码电机驱动num:电机编号 M1:1 M2:2 speed:转速量程 -100-100
+        """
+        i2c.writeto(self.i2c_addr,bytearray([8, num, speed]))
+    
+    def setvater_pump(self,speed):
+        """
+        水泵开关 speed:转速量程:-100-180
+        """
+        i2c.writeto(self.i2c_addr,bytearray([7, speed]))
+
+    def motor_info(self,num,off):
+        """ 串口获取速度值输出 num:电机编号 M1:1 M2:2 off:开关 1:开  0:关"""
+        i2c.writeto(self.i2c_addr,bytearray([9, num, off]))
+        
+
+
+'''
+循迹传感器
+'''
+class LineFollow(object):
+    def __init__(self,num1,num2):
+        if(isinstance(num1, int) and isinstance(num2, int)):
+            self.pin1 = MPythonPin(num1, PinMode.ANALOG)
+            self.pin2 = MPythonPin(num2, PinMode.ANALOG)
+            self.threshold = [2000, 2000]
+        else:
+            raise ValueError('参数错误')
+
+    def detect(self,num):
+        '''是否探测到，num 1/2 return int 0/1'''
+        if(isinstance(num, int)):
+            tmp = self.get_raw_val()[num-1]
+            if(tmp<=self.threshold[num-1]):
+                return 1
+            else:
+                return 0
+
+    def get_raw_val(self):
+        ''' list [0,0]  0-4095 '''
+        try:
+            tmp = [max(min(self.pin1.read_analog(), 4095), 0),max(min(self.pin2.read_analog(), 4095), 0)]
+            return tmp
+        except Exception as e:
+            print(e)
+            return [-1,-1]
+       
+    def set_threshold(self, threshold):
+        '''设置阈值'''
+        if(isinstance(threshold, list)):
+            if(len(threshold) == 2):
+                self.threshold = threshold
+            else:
+                raise ValueError('参数错误')
+        else:
+            raise ValueError('参数错误')
+                  
+''' 离线语音识别 '''
+class ASRPRO(object):
+    def __init__(self, tx=Pin.P16, rx=Pin.P15, uart_num=1):
+        self.uart = UART(uart_num, baudrate=115200, rx=rx, tx=tx)
+        self.identifying_word = -1
+
+    def any(self):
+        time.sleep_ms(10)
+        if(self.uart.any()):
+            self.recognition()
+            return True
+        else:
+            return False
+    
+    def recognition(self):
+        try:
+            self.identifying_word = int(self.uart.read().decode('UTF-8','ignore'))
+        except Exception as e:
+            self.identifying_word = -1
+            pass
+
+'''
+DC01 PM2.5驱动
+'''
+class PM25_DC(object):
+    def __init__(self, tx=Pin.P1, rx=Pin.P0, uart_num=1):
+        self.K = 0.4 # (注:户读取到的灰尘传感器原始 PM2.5，需要参照 TSI仪器光度法标定一个K 值系数，一般建议 0.4)
+        self.uart = UART(uart_num, baudrate=9600, stop=1, tx=tx, rx=rx, timeout=30)
+        self._pm25 = -1
+        time.sleep_ms(100)
+
+    def read(self): #单位 微克/立方米
+        _pm25 = self._pm25 
+        data = bytes(0x00)
+        time_cnt = time.ticks_ms()
+        
+        while True:
+            time.sleep_ms(10)
+            if self.uart.any():
+                head = self.uart.read(1)   
+                if(head[0] == 0xA5):
+                    data = head
+                    res = self.uart.read(3)
+                    data = head + res 
+                else:
+                    # print('0000')
+                    pass
+                
+                if len(data)==4:
+                    DATAH = data[1]
+                    DATAL = data[2]
+                    sum = 0xA5 + DATAH + DATAL # 计算校验和
+                    sum = sum ^ 0x80 # ^异或，得到低7位数据
+                    if(sum == data[3]):
+                        _pm25 = self.K * ((DATAH << 7) | (DATAL & 0x7F))   # 校验成功，计算浓度值
+                        self._pm25 = _pm25
+                        break
+                    else:
+                        pass
+            elif time.ticks_ms() - time_cnt > 2000:
+                break
+        return _pm25
+    
