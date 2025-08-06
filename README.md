@@ -1,13 +1,15 @@
-# mPython Board
+# mPython Board V3
 
-欢迎您，使用掌控板！
+欢迎您，使用掌控板3.0！
 
 掌控板是创客教育专家委员会、猫友汇、广大一线老师共同提出需求并与创客教育行业优秀企业代表共同参与研发的教具、学具，是一块为教育而生的开源硬件，也是一个公益项目。
 
 mPython掌控板是一块MicroPython微控制器板，它集成ESP32高性能双核芯片，使用当下最流行的Python编程语言，以便您轻松地将代码从桌面传输到微控制器或嵌入式系统。
 
+掌控板3.0是一块内置MicroPython解释器的微控制器板,是掌控板的升级产品，它集成ESP32-S3高性能双核芯片，使用当下最流行的Python编程语言，以便您轻松地将代码从电脑传输到掌控板中，从而体验程序创作的无穷乐趣。
 
-![](https://github.com/labplus-cn/mPython/blob/master/docs/images/掌控-立1.png)  
+
+![](https://mpython-esp32s3-doc.readthedocs.io/zh-cn/latest/_images/mpython_pro.png)  
 
 # 编程软件
 
@@ -36,10 +38,10 @@ mPython掌控板是一块MicroPython微控制器板，它集成ESP32高性能双
 
 # 相关链接
 
-GitHub: https://github.com/labplus-cn/mPython         <br/>
+GitHub: https://github.com/labplus-cn/mpython_esp32s3         <br/>
 掌控板官网: https://www.mpython.cn                      <br/>
-掌控板编程参考手册: https://mPython.readthedocs.io          <br/>
-掌控板编程软件(mPython)手册: https://mpythonsoftware.readthedocs.io/         <br/>
+掌控板3.0编程参考手册: https://mpython-esp32s3-doc.readthedocs.io/zh-cn/latest/          <br/>
+掌控板3.0编程软件(mPython)手册: https://mpythonsoftware.readthedocs.io/         <br/>
 
 # 许可信息
 
@@ -53,4 +55,4 @@ GitHub: https://github.com/labplus-cn/mPython         <br/>
 
 # 联系我们
 
-如果您对文档或掌控板的使用有任何建议或疑问，请在Github上创建一个问题，以便与他人共享答案和解决方案。
+如果您对文档或掌控板3.0的使用有任何建议或疑问，请在Github上创建一个问题，以便与他人共享答案和解决方案。

@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>升级到micropython_v1.23.0.md</title>
+    <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+    
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+html,footer,header{
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Custom MD PDF CSS
+ */
+html,footer,header{
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+
+ }
+body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+<link rel="stylesheet" href="file:///home/jiang/share/mpython_esp32s3/R%3A%5C2.Travail%5C1.Enseignement%5CCours%5C_1.Outils%5C2.Developpement%5C1.SCSS%5Cmain.css" type="text/css"><link rel="stylesheet" href="file:///home/jiang/share/mpython_esp32s3/D%3A%5Crdaros%5CCours%5C_1.Outils%5C2.Developpement%5C1.SCSS%5Cmain.css" type="text/css">
+</head>
+
+<body>
+    <p>升级mpython micropython</p>
+<p>micropython v1.23.0</p>
+<p>esp-idf v5.0.4</p>
+<h1 id="esp32%E9%A1%B9%E7%9B%AE">esp32项目</h1>
+<p>esp-idf采用cmake构建编译系统，micropython现支持make和使用idf.py编译系统。make内部也是调用idf.py实现，因些需要了解esp32的编译。<br>
+说明：esp32把用户的应用代码组织称之为项目。esp-idf不是项目的一部分。<br>
+esp32项目管理：<br>
+参考文档：<a href="https://docs.espressif.com/projects/esp-idf/zh_CN/latest/esp32/">https://docs.espressif.com/projects/esp-idf/zh_CN/latest/esp32/</a></p>
+<p>关于esp32的构建系统，了解：</p>
+<ol>
+<li>项目及主程序概念</li>
+<li>构建系统，idf.py</li>
+<li>组件、main组件</li>
+<li>示例项目</li>
+<li>项目 CMakeLists.txt</li>
+<li>sdkconfig Kconfig</li>
+</ol>
+<h1 id="micropython%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84">micropython项目架构</h1>
+<h2 id="micropython%E7%9B%B8%E5%85%B3%E7%9F%A5%E8%AF%86">micropython相关知识</h2>
+<h3 id="%E6%A8%A1%E5%9D%97%E7%BC%96%E5%86%99">模块编写</h3>
+<h3 id="%E5%8A%9F%E8%83%BD%E9%85%8D%E7%BD%AE">功能配置</h3>
+<h3 id="python%E5%BC%95%E7%94%A8c">python引用C</h3>
+<h3 id="qstr">QSTR</h3>
+<h3 id="%E6%A8%A1%E5%9D%97%E6%B3%A8%E5%86%8C-%E6%A8%A1%E5%9D%97%E4%BD%BF%E8%83%BD">模块注册 模块使能</h3>
+<h3 id="%E6%8A%8Ac%E5%8F%98%E9%87%8F%E7%BA%B3%E5%85%A5micropython-gc%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86">把C变量纳入micropython gc内存管理</h3>
+<p>参照modespnow做法，例如把_esp_espnow_obj_t *espnow_singleton加入gc管理：</p>
+<ol>
+<li>
+<p>gc内存管理结构中，加入*espnow_singleton</p>
+<pre class="hljs"><code><div>MP_REGISTER_ROOT_POINTER(struct <span class="hljs-keyword">_esp_espnow_obj_t</span> *espnow_singleton);
+</div></code></pre>
+</li>
+</ol>
+<p>2、espnow_make_new()中获取指针</p>
+<pre class="hljs"><code><div>此函数中，esp_espnow_obj_t *self = MP_STATE_PORT(espnow_singleton)获取指针，如果为空，说明对应内存被释放，需新建。
+</div></code></pre>
+<p>3、模块使用此变量</p>
+<pre class="hljs"><code><div>get_singleton()可获取注岫在gc内存管理结构中的本变量指针，然后模块就可以使用它了。get_singleton()内部也是调用MP_STATE_PORT(espnow_singleton)
+</div></code></pre>
+<h2 id="micropython%E5%81%9A%E4%B8%BAesp-idf%E9%A1%B9%E7%9B%AE">micropython做为esp-idf项目</h2>
+<ol>
+<li>
+<p>项目组织</p>
+<ul>
+<li>
+<p>micropython整体做为一个基于esp-idf项目。</p>
+</li>
+<li>
+<p>项目的文件夹保留micropython的框架</p>
+</li>
+<li>
+<p>通过main组件组织micropython项目源文件</p>
+<ul>
+<li>main组件重命名
+<ul>
+<li>项目CMakeList.txt中添加重命名后的main组件<br>
+list(APPEND EXTRA_COMPONENT_DIRS main_${IDF_TARGET})，并对对应不同的ESP芯片。</li>
+<li>在port/esp32_common.cmake中解决组件依赖。</li>
+</ul>
+</li>
+<li>main组件的源文件配置<br>
+在port/esp32_common.cmake中配置，esp32_common.cmake会被main组件的CMakeList.txt包含。</li>
+</ul>
+</li>
+<li>
+<p>添加其它组件</p>
+<ul>
+<li>esp-idf构建系统会默认加载项目文件下下的components下的用户自定义组件，类似乐鑫维护的espressif_esp-dsp，可以这样加入。</li>
+<li>在项目已包含的组件中通过以下方式加入<pre class="hljs"><code><div>list(APPEND EXTRA_COMPONENT_DIRS
+<span class="hljs-variable">${ADF_PATH}</span>/components/audio_pipeline
+<span class="hljs-variable">${ADF_PATH}</span>/components/audio_sal
+<span class="hljs-variable">${ADF_PATH}</span>/components/esp-adf-libs
+<span class="hljs-variable">${ADF_PATH}</span>/components/esp-sr
+<span class="hljs-variable">${MPY_PORT_DIR}</span>/boards/labplus_classroom_kit_nanjing/audio
+)
+</div></code></pre>
+</li>
+</ul>
+<pre class="hljs"><code><div>+ 解决加入组件的相关依赖
+</div></code></pre>
+</li>
+<li>
+<p>boards支持<br>
+port/boards下创建相关board文件夹，放入board相关特性源文件及编译特性文件。</p>
+</li>
+<li>
+<p>Kconfig<br>
+esp-idf下有个Kconfig，用于生成menuconfig菜单，里面一些选项有默认配置，执行idf.py menuconfig，生成sdkconfig文件，编译后，产生sdkconfig.h文件。<br>
+可以main components及其它组装件的CMkakeList.txt同级目录中，添加Kcongfig或Kconfig.projbuild添加新的配置项。其中，Kconfig配置项出出在Component config子菜单中,Kconfig.projbuild配置出现在主菜单中.<br>
+可通过添加多个sdkconfig.xxx修改配置值，避免每次执行idf.py menuconfig修改配置值。</p>
+</li>
+</ul>
+</li>
+<li>
+<p>项目顶层CMakeList.txt分析</p>
+<p>位于port下。定义下以下内容</p>
+<ul>
+<li>
+<p>IDF_VERSION</p>
+</li>
+<li>
+<p>MICROPY_BOARD</p>
+</li>
+<li>
+<p>MICROPY_BOARD_DIR</p>
+</li>
+<li>
+<p>SDKCONFIG #合并后的sdkconfig文件位置</p>
+</li>
+<li>
+<p>include(${MICROPY_BOARD_DIR}/mpconfigboard.cmake)</p>
+<p>mpconfigboard.cmake定义了1、各个板的MICROPY_FROZEN_MANIFEST位置（当然也可能没定义）2、SDKCONFIG_DEFAULTS，各个板的skdconfig.xxx集合，有这两项，就可以做下面两件事。</p>
+<ol>
+<li>
+<p>定义MICROPY_FROZEN_MANIFEST # mainfest.py位置，通常在各个板目录下，如果没有，则用boards下的。</p>
+</li>
+<li>
+<p>定义SDKCONFIG_DEFAULT #</p>
+<p>合并各个sdkcofig.xxx 生成sdkconfig.combobin,各个板其于sdkconfig.base，定制n个sdkconfig.xxx，用于实现不同的config，后面的配置会覆盖前面的配置？micropython中通过sdkconfig.base + 多个sckconfig.xxx来实现不同的配置，最后合并成config.combobin</p>
+</li>
+</ol>
+</li>
+<li>
+<p>list(APPEND EXTRA_COMPONENT_DIRS main_${IDF_TARGET})</p>
+<p>重命名main组件，且通过这个区别项目用哪个esp芯片。各个不同芯片的main组件目录下，包含以下文件：</p>
+<ul>
+<li>
+<p>CMakeList.txt：</p>
+<p>该芯片main组件的CMakeList.txt文件，会包含esp32_common.cmake（公用的cmake配置），及各芯片自已的一些配置</p>
+</li>
+<li>
+<p>idf_component.yml: Component Manager Manifest File,用于加入esp其它级件</p>
+</li>
+<li>
+<p>link.if</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>mainfest.py</p>
+<p>官方参考文档：<a href="https://docs.micropython.org/en/latest/reference/manifest.html">https://docs.micropython.org/en/latest/reference/manifest.html</a></p>
+<p>MicroPython除了能够从文件系统加载Python代码外，还可以把Python代码“冻结”到固件加载，这样做有几个好处：<br>
+代码已被预编译为字节码，无需在加载时编译Python源代码。<br>
+字节码可以直接从ROM（即闪存）中执行，而无需复制到内存。同样，任何常量对象（字符串、元组等）也从ROM中加载，这可以大大增加应用程序的可用内存。<br>
+在没有文件系统的设备上，这也是加载Python代码的唯一方法。</p>
+<p>项目中，如果boards/xxx板文件夹中有manifest.py，则用此文件件，此文件会包含port/boards/manifest.py，否则直接用port/boards/manifest.py。</p>
+</li>
+</ol>
+<h1 id="mpython%E9%A1%B9%E7%9B%AE%E7%BB%84%E5%BB%BA">mpython项目组建</h1>
+<ol>
+<li>
+<p>创建mpython项目文件夹</p>
+<p>创建文件夹，并初始化仓库，推送到远程。</p>
+</li>
+<li>
+<p>添加子模块</p>
+<p>项目需要esp-idf、micrpython、esp-adf子模块，从官方fork项目，并分别checkout到v5.0.4，v1.23.0，然后在项目文件夹下执行：</p>
+<pre class="hljs"><code><div>git submodule update --init --recursive
+</div></code></pre>
+<p>拉取所有子模块。<br>
+因为esp-adf会对esp-idf及micropython打补丁，所以，打完补丁后，推送到公司github，做为子模块远程。</p>
+</li>
+<li>
+<p>新建port文件夹</p>
+<p>把以下文件（文件夹），从micropython/ports/esp32复制到port文件夹。</p>
+<ul>
+<li>boards 、README.md，README.ulp.md</li>
+<li>main_xxx文件兲：不同芯片的main组件。</li>
+<li>顶层CMakeLists.txt</li>
+<li>esp32_common.cmake：是所有板的公共cmake文件。</li>
+<li>modules：所有板的公用python库。</li>
+</ul>
+</li>
+<li>
+<p>移植修改</p>
+<p>修改esp31_common.cmake内MICROPY_DIR MICROPY_PORT_DIR路径定义。<br>
+复制对应的partitions-xxx.csv到boards/对应board，修改，在sdkconfig.board中修改partitions-xxx路径为当前board。<br>
+PSRAM支持：复制sdkconfig.spiram到当前board下，修放（配置引脚、容量），配置mpconfigboard.cmake中配置本路径。<br>
+esp32_common.cmake中修改qstrdefsport.h路径</p>
+</li>
+</ol>
+<p>Noto_Sans_CJK_SC_Light16.bin .gitignore过来，把.gitignore内容复制过来。</p>
+<p>_boot.py<br>
+TAG<br>
+板名</p>
+<h1 id="%E9%A1%B9%E7%9B%AE%E7%BC%96%E8%AF%91">项目编译</h1>
+<p>linux系统按乐鑫要求安装一些库，安装gcc cmake</p>
+<ol>
+<li>
+<p>进入esp-idf，执行./install.sh，安装esp-idf的编译环境。</p>
+</li>
+<li>
+<p>执行.</p>
+<pre class="hljs"><code><div><span class="hljs-built_in">cd</span> port
+./esp-idf/export.sh <span class="hljs-comment"># 导出相关环境变量。</span>
+</div></code></pre>
+</li>
+<li>
+<p>micropython预编译</p>
+<pre class="hljs"><code><div><span class="hljs-built_in">cd</span> micropython
+make -C mpy-cross
+</div></code></pre>
+</li>
+<li>
+<p>固件编译</p>
+<pre class="hljs"><code><div>idf.py -D MICROPY_BOARD=labplus_xunfei_js_middle -D USER_C_MODULES=../usercmodule/lv_binding_micropython/bindings.cmake merge_bin 
+
+idf.py -D MICROPY_BOARD=labplus_classroom_kit_nanjing build
+idf.py -D MICROPY_BOARD=labplus_Ledong_pro build
+idf.py -D MICROPY_BOARD=mpython build
+idf.py -D MICROPY_BOARD=labplus_for_xuejing build
+idf.py -D MICROPY_BOARD=mpython_pro build
+idf.py -D MICROPY_BOARD=labplus_Ledong_v2 build
+
+idf.py -D MICROPY_BOARD=mpython_pro -D USER_C_MODULES=../usercmodule/lv_binding_micropython/bindings.cmake build
+
+
+
+
+合并固件
+</div></code></pre>
+<p>idf.py -D MICROPY_BOARD=labplus_Ledong_v2 merge_bin<br>
+idf.py -D MICROPY_BOARD=labplus_Ledong_v2 build merge_bin<br>
+idf.py -D MICROPY_BOARD=labplus_for_xuejing build merge_bin<br>
+idf.py -D MICROPY_BOARD=mpython_pro merge_bin<br>
+idf.py -D MICROPY_BOARD=mpython_pro build merge_bin<br>
+idf.py -D MICROPY_BOARD=mpython_pro -D USER_C_MODULES=../usercmodule/lv_binding_micropython/bindings.cmake build merge_bin</p>
+</li>
+</ol>
+<p>idf.py -D MICROPY_BOARD=labplus_xunfei_js_middle -D USER_C_MODULES=../usercmodule/lv_binding_micropython/bindings.cmake merge_bin</p>
+<pre class="hljs"><code><div>5. 固件烧录
+
+```bash
+idf.py -p /dev/ttyACM0 -b 4000000 flash monitor
+idf.py -p /dev/ttyACM0 -b 4000000 monitor
+</div></code></pre>
+<p>esptool命令：</p>
+<pre class="hljs"><code><div>esptool.py \
+        --port <span class="hljs-variable">$port</span> --baud <span class="hljs-variable">$baud</span> --before default_reset --after hard_reset write_flash \
+        --flash_mode dio --flash_freq 40m --flash_size detect 0x410000 <span class="hljs-string">"<span class="hljs-variable">$file</span>"</span>
+</div></code></pre>
+<p>要在wsl下使用USB设备，参阅：<a href="https://learn.microsoft.com/zh-cn/windows/wsl/connect-usb%EF%BC%8C%E5%AE%89%E8%A3%85USBIPD-WIN%E3%80%82">https://learn.microsoft.com/zh-cn/windows/wsl/connect-usb，安装USBIPD-WIN。</a><br>
+使用以下指令，实现USB设备共享到wsl。</p>
+<p>···bash<br>
+usbipd list # 列出usb设备ID，powershell中执行命令<br>
+usbipd bind --busid <busid> # bind ID，eg:4-4<br>
+usbipd attach --wsl --busid <busid> # 附加USB设备到wsl<br>
+lsusb # wsl下，查看USB设备是否附加。<br>
+usbipd detach --busid <busid> # 解除附加USB设备到wsl<br>
+6. python库调试</p>
+<p>vscode安装插件pymakr</p>
+<h1 id="%E6%B7%BB%E5%8A%A0%E4%B9%90%E5%8A%A8%E6%8E%8C%E6%8E%A7">添加乐动掌控</h1>
+<p>按以上步聚创建完mpython项目。</p>
+<ol>
+<li>
+<p>C层面添加OLED驱动及开机LOG显示</p>
+<p>涉及port/drivers/startup main.c</p>
+<ol start="2">
+<li>
+<p>底层python异常显示在oled</p>
+<p>涉及port/drivers/startup main.c,包括按CTRL C停止所有用户线程，关闭所有用户定时器。</p>
+</li>
+<li>
+<p>添加音乐模块</p>
+<p>port/qstrdefsport.h中添加music相关QSTR.<br>
+mpconfigboard.cmake中把builtin音乐模块源文件加入项目，按新的micropython模块定义方式修改。<br>
+mpconfigboard中使能本模块。<br>
+music源码中，增加#if MICROPY_PY_ESP_MUSIC,用于使能/禁能模块</p>
+</li>
+<li>
+<p>esp32_nvs</p>
+<p>复制micropython/ports/esp32/下对应模块到port/builtins/，make_new()中增加以下代码:</p>
+<pre class="hljs"><code><div>check_esp_err(nvs_flash_init_partition(<span class="hljs-string">"user_nvs"</span>));
+check_esp_err(nvs_open_from_partition(<span class="hljs-string">"user_nvs"</span>, ns_name, NVS_READWRITE, &amp;<span class="hljs-keyword">namespace</span>));
+</div></code></pre>
+<p>esp32_common.cmake中去掉esp32_nvs.c，mpconfigboard.cmake中增加port/builtins/eps32_nvs.c</p>
+</li>
+<li>
+<p>machine_pin.c<br>
+esp32_common.cmake去掉对machine_pin.c编译，复制micropython/ports/esp32/machine_pin.c到port/builtins/，此文件添加mpython pin定义。<br>
+micropython对有PSRAM的板，限定的CS CLK pin为16 17引脚，需要重新修改machine.h为_machine_1.h，去掉对16 17脚的禁用。esp32_common.cmake重定义pins_prefix.c make-pins.py路径<br>
+machine.c和pins_prefix.c修改含头文件路径为machine_pin_1.h</p>
+</li>
+<li>
+<p>修改partition-8MiB.csv文件</p>
+<p>保持跟乐动掌控的一致，但会出固件区域不够情况，扩容之，暂不知会有什么问题，之前似似乎有利用扩容区。此文件放在对应board文件下，注意在sdkconfig.board中修改文件路径.</p>
+</li>
+<li>
+<p>添加micropython-lib库的neopixel.py到port/modules,参照唐工的对应文件做修改。注释掉boards/manifest.py内的对本库的引用。</p>
+</li>
+<li>
+<p>machine_touchpad.c</p>
+<p>esp32_common.cmake去掉对machine_touchpad.c编译，复制micropython/ports/esp32/machine_touchpad.c到port/builtins/，按之版本修改本文件。<br>
+mpconfigboard.cmake添加此文件编译</p>
+</li>
+<li>
+<p>modframebuf.c</p>
+<p>esp32_common.cmake中禁止modframbuf.c编译，board/mpconfigboard.cmake添加此文件编译。按之前版本做相应修改。此文件影响mpython.py中的GUI库<br>
+可以用以下命令移除变量或列表中的一项：</p>
+<p>···bash<br>
+list(REMOVE_ITEM MICROPY_SOURCE_EXTMOD ${MICROPY_EXTMOD_DIR}/modframebuf.c)</p>
+<pre class="hljs"><code><div>待解决：一些函数重定义了，是否用新版的函数，待用户端测试
+</div></code></pre>
+</li>
+<li>
+<p>network and radio</p>
+</li>
+<li>
+<p>离线语音识别及合成</p>
+<p>参考文档：<a href="https://docs.espressif.com/projects/esp-sr/zh_CN/latest/esp32/getting_started/readme.html">https://docs.espressif.com/projects/esp-sr/zh_CN/latest/esp32/getting_started/readme.html</a></p>
+<p>参考项目：<a href="https://github.com/espressif/esp-skainet">https://github.com/espressif/esp-skainet</a></p>
+<p>main_esp32/idf_componnet.yml中添加esp-sr组件：espressif/esp-sr: &quot;&gt;=1.7.0&quot;</p>
+</li>
+<li>
+<p>bluetooth</p>
+</li>
+<li>
+<p>tag<br>
+图片转数组工具：<a href="https://notisrac.github.io/FileToCArray">https://notisrac.github.io/FileToCArray</a><br>
+<img src="file:///home/jiang/share/mpython_esp32s3/port/image.png" alt="alt text"></p>
+</li>
+</ol>
+</li>
+</ol>
+
+</body>
+
+</html>
