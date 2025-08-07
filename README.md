@@ -48,9 +48,6 @@ GitHub: https://github.com/labplus-cn/mpython_esp32s3         <br/>
 labplus保留本项目的所有版权。 https://labplus.cn/
 
 
-掌控板是一个[OSHWA](https://certification.oshwa.org/cn000006.html) 认证的开源硬件项目,代码和设计都是开源。但软件须在[GPL-3](http://www.gnu.org/licenses/gpl.html)许可下使用,硬件在CERN许可下使用,文档在CC0许可下使用。
-
-
 # 联系我们
 
 如果您对文档或掌控板3.0的使用有任何建议或疑问，请在Github上创建一个问题，以便与他人共享答案和解决方案。
