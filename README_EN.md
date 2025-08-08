@@ -41,8 +41,10 @@ Programming reference manual: https://mPython.readthedocs.io          <br/>
 mPython Software manual: https://mpythonsoftware.readthedocs.io/         <br/>
 
 # License
+![](./oshw_mpython.png)
+![](./oshw_mpython_v3.svg)
 
-LabPlus conserve tous les droits d’auteur sur ce projet. https://labplus.cn/
+mPython is [OSHWA](https://certification.oshwa.org/cn000020.html) Certified open source hardware projects, code and design are open source. But the software must be in [GPL-3](http://www.gnu.org/licenses/gpl.html) permission to use, permission to use hardware in CERN, document in CC0 permission to use.
 
 # Contact us
 
