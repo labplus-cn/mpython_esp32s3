@@ -1,0 +1,32 @@
+menu "mpython board"
+
+choice MPYTHON_BOARD
+    prompt "mpython board"
+    default LABPLUS_FOR_XUEJING_BOARD
+    help
+        Select an mpython board to use in micropython
+config AUDIO_BOARD_CUSTOM
+    bool "Custom mpython board"
+config LABPLUS_LEDONG_PRO_BOARD
+    bool "labplus Ledong pro board"
+    depends on IDF_TARGET_ESP32S3
+config LABPLUS_FOR_XUEJING_BOARD
+    bool "labplus for xuejing board"
+    depends on IDF_TARGET_ESP32S3
+config MPYTHON_PRO_BOARD
+    bool "mpython pro board"
+    depends on IDF_TARGET_ESP32S3
+config LABPLUS_LEDONG_V2_BOARD
+    bool "labplus Ledong v2 board"
+    depends on IDF_TARGET_ESP32S3
+config LABPLUS_XUNFEI_JS_PRIMARY_BOARD
+    bool "labplus xunfei for jiangshu primary school board"
+    depends on IDF_TARGET_ESP32S3
+config LABPLUS_XUNFEI_JS_MIDDLE_BOARD
+    bool "labplus xunfei for jiangshu middle school board"
+    depends on IDF_TARGET_ESP32S3
+
+endchoice
+
+endmenu
+
